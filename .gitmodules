@@ -1,0 +1,9 @@
+[submodule "screencrash-core"]
+	path = screencrash-core
+	url = https://github.com/kulturkrock/screencrash-core
+[submodule "screencrash-ui"]
+	path = screencrash-ui
+	url = https://github.com/kulturkrock/screencrash-ui
+[submodule "screencrash-components"]
+	path = screencrash-components
+	url = https://github.com/kulturkrock/screencrash-components
