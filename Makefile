@@ -2,7 +2,7 @@
 
 dev:
 	sh -c \
-	'make -C screencrash-ui dev & \
+	'CORE=localhost:8001 make -C screencrash-ui dev & \
 	make -C screencrash-core dev & \
-	make -C screencrash-components dev & \
+	CORE=localhost:8001 make -C screencrash-components dev & \
 	wait'
