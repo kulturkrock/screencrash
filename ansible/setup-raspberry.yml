@@ -1,0 +1,72 @@
+- hosts: all
+  user: pi
+  become: yes
+  tasks:
+    - name: Add Node.js apt key
+      apt_key:
+        id: 9FD3B784BC1C6FC31A8A0A1C1655A0AB68576280
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        state: present
+    - name: Add Node.js apt repository
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_16.x {{ ansible_facts.distribution_release }} main"
+        state: present
+    - name: Install apt packages
+      apt:
+        update_cache: true
+        name:
+          - nodejs
+          - xserver-xorg
+          - chromium-browser # For all the electron dependencies
+    - name: Create standalone X service
+      copy:
+        src: xserver.service
+        dest: /etc/systemd/system/xserver.service
+    - name: Enable standalone X service
+      systemd:
+        name: xserver
+        enabled: true
+        state: started
+    - name: Create screencrash directory
+      file:
+        path: /opt/screencrash
+        state: directory
+        mode: ugo+rwx
+    # Media
+    - name: Copy media component
+      become: false
+      synchronize:
+        src: "{{ playbook_dir }}/../screencrash-components/media"
+        dest: /opt/screencrash/
+        delete: true
+        rsync_opts:
+          - "--exclude-from={{ playbook_dir }}/rsync-exclude-media"
+      register: sync
+      notify: Restart media
+    - name: Install media dependencies
+      when: sync.stdout_lines | select('match', '.*package-lock.json.*') | list
+      become: false
+      command: npm ci
+      args:
+        chdir: /opt/screencrash/media
+      notify: Restart media
+    - name: Create media service
+      copy:
+        src: media.service
+        dest: /etc/systemd/system/media.service
+      notify: Restart media
+    - name: Enable media service
+      systemd:
+        name: media
+        enabled: true
+        state: started
+  
+  handlers:
+    - name: Restart media
+      systemd:
+        name: media
+        daemon_reload: true
+        enabled: true
+        state: restarted
+    
+      

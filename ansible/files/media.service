@@ -1,0 +1,13 @@
+[Unit]
+Description=Media component
+
+[Service]
+Type=simple
+Environment=DISPLAY=:0
+Environment=SCREENCRASH_FULLSCREEN=true
+ExecStart=/usr/bin/npm start
+WorkingDirectory=/opt/screencrash/media
+User=pi
+
+[Install]
+WantedBy=multi-user.target
