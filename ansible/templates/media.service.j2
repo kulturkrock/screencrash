@@ -4,10 +4,14 @@ Description=Media component
 [Service]
 Type=simple
 Environment=DISPLAY=:0
+Environment=SCREENCRASH_CORE={{ core_addr }}
 Environment=SCREENCRASH_FULLSCREEN=true
+Environment=SCREENCRASH_NO_AUDIO=true
+Environment=SCREENCRASH_DISABLE_AUDIO_WORKAROUND=true
+Environment=SCREENCRASH_COMPONENT_ID=rpi_screen
 ExecStart=/usr/bin/npm start
 WorkingDirectory=/opt/screencrash/media
-User=pi
+User={{ username }}
 
 [Install]
 WantedBy=multi-user.target
