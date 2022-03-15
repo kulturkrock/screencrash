@@ -1,9 +1,0 @@
-[Unit]
-Description=Standalone X
-
-[Service]
-Type=simple
-ExecStart=/usr/bin/Xorg :0 -nolisten tcp -nocursor
-
-[Install]
-WantedBy=multi-user.target

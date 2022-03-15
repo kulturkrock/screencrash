@@ -1,7 +1,11 @@
 - hosts: all
-  user: pi
+  vars:
+    - core_addr: 'localhost:8001'
+    - username: pi
+  user: "{{ username }}"
   become: yes
   tasks:
+    # Dependencies
     - name: Add Node.js apt key
       apt_key:
         id: 9FD3B784BC1C6FC31A8A0A1C1655A0AB68576280
@@ -18,15 +22,20 @@
           - nodejs
           - xserver-xorg
           - chromium-browser # For all the electron dependencies
-    - name: Create standalone X service
-      copy:
-        src: xserver.service
-        dest: /etc/systemd/system/xserver.service
-    - name: Enable standalone X service
-      systemd:
-        name: xserver
-        enabled: true
-        state: started
+    # XServer
+    - name: Check cursor visible
+      command: grep "#xserver-command=X" /etc/lightdm/lightdm.conf
+      register: cursorvisible
+      failed_when: cursorvisible.rc >= 2
+      check_mode: no
+      ignore_errors: yes
+      changed_when: no
+    - name: Setup X service without cursor
+      become: false
+      command: sudo sed -i -- "s/#xserver-command=X/xserver-command=X -nolisten tcp -nocursor/" /etc/lightdm/lightdm.conf
+      when: cursorvisible.rc == 0
+      notify: Restart window manager
+    # Screencrash general
     - name: Create screencrash directory
       file:
         path: /opt/screencrash
@@ -51,8 +60,8 @@
         chdir: /opt/screencrash/media
       notify: Restart media
     - name: Create media service
-      copy:
-        src: media.service
+      template:
+        src: media.service.j2
         dest: /etc/systemd/system/media.service
       notify: Restart media
     - name: Enable media service
@@ -60,11 +69,50 @@
         name: media
         enabled: true
         state: started
+    # Inventory
+    - name: Copy inventory component
+      become: false
+      synchronize:
+        src: "{{ playbook_dir }}/../screencrash-components/inventory"
+        dest: /opt/screencrash/
+        delete: true
+        rsync_opts:
+          - "--exclude-from={{ playbook_dir }}/rsync-exclude-inventory"
+      register: sync
+      notify: Restart inventory
+    - name: Install inventory dependencies
+      when: sync.stdout_lines | select('match', '.*package-lock.json.*') | list
+      become: false
+      command: npm ci
+      args:
+        chdir: /opt/screencrash/inventory
+      notify: Restart inventory
+    - name: Create inventory service
+      template:
+        src: inventory.service.j2
+        dest: /etc/systemd/system/inventory.service
+      notify: Restart inventory
+    - name: Enable inventory service
+      systemd:
+        name: inventory
+        enabled: true
+        state: started
   
   handlers:
+    - name: Restart window manager
+      systemd:
+        name: lightdm
+        daemon_reload: true
+        state: restarted
     - name: Restart media
       systemd:
         name: media
+        daemon_reload: true
+        enabled: true
+        state: restarted
+    - name: Restart inventory
+      systemd:
+        name: inventory
         daemon_reload: true
         enabled: true
         state: restarted
