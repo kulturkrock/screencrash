@@ -50,10 +50,10 @@
         delete: true
         rsync_opts:
           - "--exclude-from={{ playbook_dir }}/rsync-exclude-media"
-      register: sync
+      register: media_sync
       notify: Restart media
     - name: Install media dependencies
-      when: sync.stdout_lines | select('match', '.*package-lock.json.*') | list
+      when: media_sync.stdout_lines | select('match', '.*package-lock.json.*') | list
       become: false
       command: npm ci
       args:
@@ -78,10 +78,10 @@
         delete: true
         rsync_opts:
           - "--exclude-from={{ playbook_dir }}/rsync-exclude-inventory"
-      register: sync
+      register: inventory_sync
       notify: Restart inventory
     - name: Install inventory dependencies
-      when: sync.stdout_lines | select('match', '.*package-lock.json.*') | list
+      when: inventory_sync.stdout_lines | select('match', '.*package-lock.json.*') | list
       become: false
       command: npm ci
       args:
