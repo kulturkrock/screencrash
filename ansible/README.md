@@ -5,6 +5,12 @@ To set up the Raspberry Pi ("krockis"), you need some prerequisites (on Linux at
 - ansible
 - sshpass
 
+You should also have initialized the submodules in this repo:
+
+```sh
+git submodule update --init
+```
+
 ## Manual setup
 
 - Flash Raspberry Pi OS Desktop onto an SD card. Add a file `/boot/ssh`, and change `raspberry` to `krockis` in `/etc/hostname` and `/etc/hosts`.
