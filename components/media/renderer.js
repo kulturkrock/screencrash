@@ -15,7 +15,7 @@ if (process.env.SCREENCRASH_NO_AUDIO !== 'true' && process.env.SCREENCRASH_DISAB
 // Init command handler
 const CommandRouter = require('./model/commandrouter');
 const FileHandler = require('./model/fileHandler');
-const resourcesPath = path.join(__dirname, 'resources');
+const resourcesPath = path.join(__dirname, '..', '..', 'resources');
 const fileHandler = new FileHandler(resourcesPath);
 const commandRouter = new CommandRouter(document, fileHandler);
 

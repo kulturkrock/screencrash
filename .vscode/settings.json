@@ -1,6 +1,6 @@
 {
   "yaml.schemas": {
-    "./core/schemas/opus.schema.json": ["/core/resources/*opus.yaml"]
+    "./schemas/opus.schema.json": ["/resources/*opus.yaml"]
   },
   "[html]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode",

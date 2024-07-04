@@ -39,7 +39,7 @@ class Core:
         )
         print("Loading opus...")
         self._opus = await load_opus(
-            Path("resources") / opus_file,
+            Path(__file__).parent.parent.parent / "resources" / opus_file,
             read_asset_data=sync_assets,
             exit_on_validation_failure=exit_on_validation_failure,
         )
