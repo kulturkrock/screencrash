@@ -1,15 +1,15 @@
 .PHONY: dev
 
 dev_core:
-	make -C "screencrash-core" dev
+	make -C "core" dev
 
 dev_ui:
-	make -C "screencrash-ui" dev
+	make -C "ui" dev
 	
 dev_media:
-	make -C "screencrash-components/media" dev
+	make -C "components/media" dev
 
 dev_inventory:
-	make -C "screencrash-components/inventory" dev
+	make -C "components/inventory" dev
 
-dev: dev_core dev_ui dev_media dev_inventory
+dev: dev_core dev_ui dev_media
