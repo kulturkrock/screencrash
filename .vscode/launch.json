@@ -9,19 +9,19 @@
           "type": "node",
           "request": "launch",
           "cwd": "${workspaceFolder}/media",
-          "runtimeExecutable": "${workspaceFolder}/media/node_modules/.bin/electron",
+          "runtimeExecutable": "${workspaceFolder}/components/media/node_modules/.bin/electron",
           "windows": {
-            "runtimeExecutable": "${workspaceFolder}/media/node_modules/.bin/electron.cmd"
+            "runtimeExecutable": "${workspaceFolder}/components/media/node_modules/.bin/electron.cmd"
           },
           "args" : ["."],
           "outputCapture": "std"
         },
         {
             "name": "Run Audio Component",
-            "type": "python",
+            "type": "debugpy",
             "request": "launch",
-            "cwd": "${workspaceFolder}/audio",
-            "program": "${workspaceFolder}/audio/src/main.py",
+            "cwd": "${workspaceFolder}/components/audio",
+            "program": "${workspaceFolder}/components/audio/src/main.py",
             "args" : [],
             "console": "integratedTerminal"
         }

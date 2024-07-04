@@ -1,5 +1,0 @@
-{
-    "yaml.schemas": {
-        "./schemas/opus.schema.json": ["/resources/*opus.yaml"]
-    }
-}

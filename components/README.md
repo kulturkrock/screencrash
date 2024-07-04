@@ -1,7 +1,9 @@
 # screencrash-components
-Repository for the loose components (media, audio, robot etc.) of Screencrash (also known as Skärmkrock)
+
+Directory for the loose components (media, audio, robot etc.) of Screencrash (also known as Skärmkrock)
 
 ## Running components
+
 You can use make to run individual (or all) components. See table below.
 
 | Command        | Result                                                                                   |

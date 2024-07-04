@@ -27,4 +27,4 @@ jobs:
           github_token: ${{ secrets.github_token }}
           # Enable linters
           eslint: true
-          eslint_dir: media/
+          eslint_dir: components/media/

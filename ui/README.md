@@ -1,6 +1,6 @@
 # screencrash-ui
 
-Repository for the UI of Screencrash (also known as Skärmkrock)
+Directory for the UI of Screencrash (also known as Skärmkrock)
 
 - [screencrash-ui](#screencrash-ui)
   - [Dependencies](#Dependencies)

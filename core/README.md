@@ -1,6 +1,6 @@
 # screencrash-core
 
-Repository for the core component of Screencrash (also known as Skärmkrock)
+Directory for the core component of Screencrash (also known as Skärmkrock)
 
 - [screencrash-core](#screencrash-core)
   - [Dependencies](#Dependencies)

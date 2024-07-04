@@ -1,15 +1,18 @@
 # Setup raspberry 'krockis'
 
+'Krockis' is the Raspberry Pi owned by Kulturkrock. It has been used for controlling
+electronics via bluetooth, and is available for future projects. It is not necessary
+for a standard performance.
+
+As of 2024-07-04, it is not powerful enough to display backgrounds and videos
+(it has trouble with fades).
+
+## Prerequisites
+
 To set up the Raspberry Pi ("krockis"), you need some prerequisites (on Linux at least):
 
 - ansible
 - sshpass
-
-You should also have initialized the submodules in this repo:
-
-```sh
-git submodule update --init
-```
 
 ## Manual setup
 
