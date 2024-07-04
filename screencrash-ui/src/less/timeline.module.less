@@ -1,0 +1,56 @@
+.container {
+    border-color: wheat;
+    border-width: 1px;
+    border-style: solid;
+}
+
+.node {
+    stroke: wheat;
+    stroke-width: 1px;
+}
+
+.line {
+    stroke: wheat;
+    stroke-width: 1px;
+}
+
+.currentNode {
+    stroke-width: 2px;
+}
+
+.prompt {
+    fill: wheat;
+    font-size: 6pt;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    height: 100%;
+    margin-left: 3pt;
+    margin-right: 3pt;
+}
+.promptText {
+    font-size: 1em;
+}
+.promptAction {
+    font-size: 0.8em;
+    margin-bottom: 0.1em;
+    opacity: 0.7;
+}
+.prompt .promptAction:nth-child(2) {
+    /* First prompt action should create some
+       space to prompt text */
+    margin-top: 0.2em;
+}
+
+.lineNumber {
+    height: 100%;
+    font-size: 5pt;
+    text-align: end;
+    display: flex;
+    flex-direction: column;
+    justify-content: safe center;
+    margin-right: 3pt;
+}
+.promptActionHidden {
+    display: none;
+}

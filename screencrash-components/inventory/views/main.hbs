@@ -1,0 +1,202 @@
+
+<div id = "inventory-notifications">
+</div>
+
+<div id = "inventory">
+	<div class = "inventory-header">Inventarium</div>
+	<div id = "inventory-internal">
+		<div class = "inventory-item"><div class = "inventory-item-icon"><div id = "inventory-gold-amount">5</div></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+		<div class = "inventory-item"><div class = "inventory-item-icon"></div></div>
+	</div>
+</div>
+
+<div id = "achievements">
+</div>
+
+<!-- Only used for templating -->
+<div class = "inventory-notification">
+	<div class = "inventory-notification-modifier">+</div>
+	<img class = "inventory-notification-icon" src = "/inventory-data/items/item.png">
+	<div class = "inventory-notification-info">
+		Item name
+	</div>
+</div>
+
+<div class = "achievement">
+	<img class = "achievement-icon" src = "/inventory-data/achievements/achievement.jpg">
+	<div class = "achievement-info">
+		<div class = "achievement-name">TBD</div>
+		<div class = "achievement-desc">TBD</div>
+	</div>
+</div>
+
+<!-- End of templating -->
+
+<script>
+	var conn = undefined;
+	connect();
+	
+	function connect() {
+		const socket = new WebSocket(`ws://${location.host}/`);
+		socket.onmessage = (event) => {
+			const msg = JSON.parse(event.data);
+			handleMessage(msg);
+		};
+		socket.onclose = (event) => {
+			console.log(`Lost connection. Reconnecting in 1s...`);
+			setTimeout(() => {conn = connect();}, 1000);
+		};
+
+		return socket;
+	}
+
+	function handleMessage(msg) {
+		switch (msg.messageType) {
+			case "item_add":
+				announceItemChange("+", msg.item);
+				break;
+			case "item_remove":
+				announceItemChange("-", msg.item);
+				break;
+			case "items":
+				reloadItems(msg.items);
+				break;
+			case "achievement":
+				announceAchievement(msg.achievement);
+				break;
+			case "money":
+				if (msg.changeAmount) {
+					announceMoneyChange(msg.changeAmount, msg.currency);
+				}
+				updateMoney(msg.money);
+				break;
+			case "items_visibility":
+				updateInventoryVisibility(msg.visible);
+				break;
+			case "clear_item_animations":
+				clearItemAnimations();
+				break;
+			default:
+				console.log(`Ignoring unhandled message type ${msg.messageType}`);
+		}
+	}
+	
+	function getNumberOfVisibleSlots(nbrOfItems){
+		if (nbrOfItems < 4) return 15;
+		else if (nbrOfItems < 9) return 15;
+		else if (nbrOfItems < 14) return 15;
+		else if (nbrOfItems < 23) return 24;
+		else return 35;
+	}
+	
+	function reloadItems(items){
+		let allItems = document.getElementsByClassName("inventory-item");
+		
+		// Hide all unused item rows
+		let itemMaxIndex = getNumberOfVisibleSlots(items.length);
+		for (let i = 0; i<allItems.length; i++){
+			allItems[i].style.display = i < itemMaxIndex ? "block" : "none";
+		}
+		
+		// Populate with icons
+		for (let i = 0; i<allItems.length-1; i++) {
+			let url = "";
+			if (i < items.length){
+				url = "url('/inventory-data/items/" + items[i] + ".png')";
+			}
+			
+			allItems[i+1].firstChild.style.backgroundImage = url;
+		}
+		
+		// Ugly hack to allow many items, didnt wanna fight with flexbox.
+		let className = "";
+		if (items.length >= 23) className = "superlarge";
+		else if (items.length > 13) className = "large";
+		document.getElementById("inventory-internal").className = className;
+	}
+	
+	function updateMoney(amount){
+		document.getElementById('inventory-gold-amount').innerHTML = amount;
+	}
+
+	function announceItemChange(modifier, item) {
+		let notificationNode = document.getElementsByClassName("inventory-notification")[0].cloneNode(true);
+		notificationNode.getElementsByClassName("inventory-notification-modifier")[0].innerHTML = modifier;
+		notificationNode.getElementsByClassName("inventory-notification-icon")[0].setAttribute("src", "/inventory-data/items/" + item.name + ".png");
+		notificationNode.getElementsByClassName("inventory-notification-info")[0].innerHTML = item.description;
+		
+		let container = document.getElementById("inventory-notifications");
+		container.appendChild(notificationNode);
+		notificationNode.className += " visible";
+		setTimeout(function(){ container.removeChild(notificationNode); }, 5000);
+	}
+
+	function announceMoneyChange(amount, currency) {
+		console.log("annouce money change");
+		let notificationNode = document.getElementsByClassName("inventory-notification")[0].cloneNode(true);
+		notificationNode.getElementsByClassName("inventory-notification-modifier")[0].innerHTML = (amount < 0 ? "-" : "+");
+		notificationNode.getElementsByClassName("inventory-notification-icon")[0].setAttribute("src", "/inventory-data/theme/inventory-money-icon.png");
+		notificationNode.getElementsByClassName("inventory-notification-info")[0].innerHTML = `${amount} ${currency}`;
+		
+		let container = document.getElementById("inventory-notifications");
+		container.appendChild(notificationNode);
+		notificationNode.className += " visible";
+		setTimeout(function(){ container.removeChild(notificationNode); }, 5000);
+	}
+	
+	function announceAchievement(achievement){
+		console.log(`Got an achievement! ${achievement.title}: ${achievement.desc}`);
+		let achievementNode = document.getElementsByClassName("achievement")[0].cloneNode(true);
+		achievementNode.getElementsByClassName("achievement-icon")[0].setAttribute("src", "/inventory-data/achievements/" + achievement.name + ".jpg");
+		achievementNode.getElementsByClassName("achievement-name")[0].innerHTML = achievement.title;
+		achievementNode.getElementsByClassName("achievement-desc")[0].innerHTML = achievement.desc;
+		achievementNode.style.display = "flex";
+		
+		let container = document.getElementById("achievements");
+		container.appendChild(achievementNode);
+		achievementNode.className += " visible";
+		setTimeout(function(){ container.removeChild(achievementNode); }, 10000);
+	}
+
+	function updateInventoryVisibility(visible) {
+		document.getElementById("inventory").style.display = (visible ? "block" : "none");
+		document.getElementById("inventory-notifications").style.display = (visible ? "none" : "block");
+	}
+	
+	function clearItemAnimations() {
+		document.getElementById("inventory-notifications").innerHTML = "";
+	}
+</script>

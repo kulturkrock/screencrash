@@ -1,0 +1,16 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+watchdog = "==2.1.6"
+pyyaml = "==6.0"
+
+[packages]
+pygame = "==2.1.2"
+websocket-client = "==1.2.3"
+python-vlc = "==3.0.12118"
+
+[requires]
+python_version = "3.8"

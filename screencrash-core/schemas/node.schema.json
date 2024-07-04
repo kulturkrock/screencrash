@@ -1,0 +1,114 @@
+{
+    "$id": "https://kulturkrock.se/node.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Node",
+    "description": "A node object",
+    "type": "object",
+    "properties": {
+        "next": {
+            "title": "Next node(s)",
+            "description": "Select which nodes a user can reach from this node",
+            "oneOf": [
+                {
+                    "title": "Node ID",
+                    "type": "string"
+                },
+                {
+                    "title": "Multi-path options",
+                    "description": "Define list of all possible nodes to jump to",
+                    "type": "array",
+                    "items": {
+                        "title": "Multi-path option",
+                        "description": "Option to jump to",
+                        "type": "object",
+                        "properties": {
+                            "node": {
+                                "title": "Node ID",
+                                "type": "string"
+                            },
+                            "description": {
+                                "title": "Prompt",
+                                "description": "Prompt to show when choosing paths",
+                                "type": "string"
+                            },
+                            "actions": {
+                                "title": "Actions",
+                                "description": "The actions which should run when performing this choice",
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/$defs/inline_action"
+                                }
+                            }
+                        },
+                        "additionalProperties": false
+                    }
+                }
+            ]
+        },
+        "prompt": {
+            "title": "Prompt",
+            "description": "Prompt to show when this node is active",
+            "type": "string"
+        },
+        "pdfPage": {
+            "title": "PDF page",
+            "description": "PDF page this node happens on",
+            "type": "number"
+        },
+        "pdfLocationOnPage": {
+            "title": "PDF page location",
+            "description": "Where to zoom PDF viewer when reaching node. Value is between 0.0 - 1.0",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+        },
+        "lineNumber": {
+            "title": "Line number",
+            "description": "Optional line number, if not part of the ID",
+            "type": "number"
+        },
+        "actions": {
+            "title": "Actions",
+            "description": "The actions on this node",
+            "type": "array",
+            "items": {
+                "$ref": "#/$defs/inline_action"
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": ["next", "prompt"],
+
+    "$defs": {
+        "inline_action": {
+            "oneOf": [
+                {
+                    "title": "Action ID",
+                    "type": "string"
+                },
+                {
+                    "$ref": "action.schema.json#"
+                },
+                {
+                    "title": "Parameterized action",
+                    "description": "Parameterized action using a predefined action and filling in its values",
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "title": "Action",
+                            "description": "Action ID as defined in action_templates section",
+                            "type": "string"
+                        },
+                        "parameters": {
+                            "title": "Parameters",
+                            "description": "Dynamic parameters for this action",
+                            "type": "object"
+                        }
+                    },
+                    "required": ["action", "parameters"],
+                    "additionalProperties": false
+                }
+            ]
+        }
+    }
+}

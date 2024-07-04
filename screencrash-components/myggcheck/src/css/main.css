@@ -1,0 +1,41 @@
+#disconnected {
+    background:rgba(255, 255, 255, 0);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    font-size: 16vh;
+    color: lightgray;
+    text-align: center;
+}
+.disconnected_info {
+    margin-top: 2vh;
+    font-size: 6vh;
+}
+
+.container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    font-size: 5em;
+    text-align: center;
+    font-variant: small-caps;
+}
+.container.ok {
+    background: darkgreen;
+    color: white;
+}
+.container.notok {
+    background: darkred;
+    color: white;
+}
+.containercontent {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+}

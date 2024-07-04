@@ -1,0 +1,226 @@
+
+<div class = "status-area">
+	<div id = "achievements_list"><b>Achievements:</b> </div>
+	<div id = "items"></div>
+	<div><span id = "money"></span> guld</div>
+</div>
+
+<div class = "controls-area">
+	<h3>Manual edit</h3>
+	<div class = "controls-area-items">
+		<input type = "text" id = "item-name" placeholder = "Item ID">
+		<input type = "button" value = "Add" onclick = "addItemManually(getItemName());">
+		<input type = "button" value = "Remove" onclick = "removeItemManually(getItemName());">
+		<br><br>
+		<input type = "text" id = "gold-amount" placeholder = "Amount" onkeyup = "enableGoldButton(event);">
+		<input type = "button" id = "gold-button" value = "Change gold" onclick = "fixGoldChange();" disabled>
+	</div>
+	<div class = "controls-area-achievements">
+		<div id = "achievement-manual-update">
+			<select id = "achievement-select">
+				<option value = "" selected disabled>Välj achievement</option>
+				{{#each achievementsLeft as |achievement index|}}
+					<option value = "{{ achievement.name }}">{{ achievement.title }}</option>
+				{{/each}}
+			</select>
+			<input type = "button" value = "Activate" onclick = "activateAchievementFromSelect();">
+		</div>
+		
+		<div id = "achievement-validate">
+			New achievement detected!
+			<input type = "hidden" id = "achievement-validate-codename"/>
+			<div id = "achievement-validate-name">Name</div>
+			<div id = "achievement-validate-description">Description</div>
+			<input id = "achievement-validate-button" type = "button" value = "Activate" onclick = "activateAchievementFromValidator();" disabled>
+		</div>
+	</div>
+</div>
+
+
+<h3>Fancy edit</h3>
+<div class = "item-area">
+	{{#each availableItems as |item index|}}
+		<div class = "available-item {{ternary (eq item.cost 0) 'short' ''}}">
+			<div class = "available-item-icon {{ternary item.added ' added' ''}}" style = "background-image: url('/inventory-data/items/{{ item.name }}.png');" onclick = "toggleItem(this, '{{ item.name }}');"></div>
+			<div class = "available-item-name">{{ item.description }}</div>
+			<div class = "available-item-cost">{{ item.cost }} guld</div>
+			<div class = "available-item-controls">
+				<div class = "available-item-remove" onclick = "removeItem(this, '{{ item.name }}');">REM</div>
+				<div class = "available-item-add" onclick = "addItem(this, '{{ item.name }}');">ADD</div>
+				{{#if (neq item.cost 0)}}
+					<div class = "available-item-sell" onclick = "sellItem(this, '{{ item.name }}');">SELL</div>
+					<div class = "available-item-buy" onclick = "buyItem(this, '{{ item.name }}');">BUY</div>
+				{{/if}}
+			</div>
+		</div>
+	{{/each}}
+</div>
+
+
+<script>
+	var conn = connect();
+	
+	function connect() {
+		const socket = new WebSocket(`ws://${location.host}/`);
+		socket.onmessage = (event) => {
+			const msg = JSON.parse(event.data);
+			handleMessage(msg);
+		};
+		socket.onclose = (event) => {
+			console.log(`Lost connection. Reconnecting in 1s...`);
+			setTimeout(() => {conn = connect();}, 1000);
+		};
+
+		return socket;
+	}
+
+	function handleMessage(msg) {
+		switch (msg.messageType) {
+			case "items":
+				reloadItems(msg.items);
+				break;
+			case "money":
+				updateMoney(msg.money);
+				break;
+			case "achievement":
+				announceAchievement(msg.achievement);
+				break;
+			case "achievement_reached":
+				validateAchievement(msg.achievement);
+				break;
+			case "achievements":
+				loadDoneAchievements(msg.achievements);
+				break;
+			default:
+				console.log(`Ignoring unhandled message type ${msg.messageType}`);
+		}
+	}
+
+	function sendCommand(cmd) {
+		try {
+			conn.send(JSON.stringify(cmd));
+		}
+		catch(e) {
+			console.log(`Failed to send command: ${e}`);
+		}
+	}
+	
+	function reloadItems(items){
+		let info = "<b>Items:</b> " + items.join(", ");
+		document.getElementById("items").innerHTML = info;
+	}
+	
+	function updateMoney(money){
+		document.getElementById("money").innerHTML = money;
+	}
+	
+	function validateAchievement(achievement){
+		document.getElementById("achievement-validate-codename").value = achievement.name;
+		document.getElementById("achievement-validate-name").innerHTML = achievement.title;
+		document.getElementById("achievement-validate-description").innerHTML = achievement.desc;
+		document.getElementById("achievement-validate-button").removeAttribute("disabled");
+		document.getElementById("achievement-validate").style.display = "block";
+	}
+	
+	function loadDoneAchievements(achievements){
+		let info = "<b>Achievements:</b> " + achievements.map(x => x.title).join(", ");
+		document.getElementById("achievements_list").innerHTML = info;
+	}
+	
+	function activateAchievementFromSelect(){
+		var sel = document.getElementById("achievement-select");
+		activateAchievement(sel.options[sel.selectedIndex].value);
+	}
+	
+	function activateAchievementFromValidator(){
+		var codename = document.getElementById("achievement-validate-codename").value;
+		activateAchievement(codename);
+		document.getElementById("achievement-validate-button").setAttribute("disabled", "true");
+		document.getElementById("achievement-validate").style.display = "none";
+	}
+	
+	function announceAchievement(achievement){
+		let info = achievement.title + ", ";
+		document.getElementById("achievements_list").innerHTML += info;
+	}
+	
+	function toggleItem(itemElement, itemId){
+		let add = !itemElement.className.includes("added");
+		
+		if (add){
+			addItem(itemId);
+			itemElement.className += " added";
+		} else {
+			removeItem(itemId);
+			itemElement.className = itemElement.className.replace(" added", "");
+		}
+	}
+	
+	function addItem(itemElement, itemId){
+		sendCommand({ command: "add", item: itemId });
+		
+		if (!itemElement.className.includes("added")) {
+			itemElement.className += " added";
+		}
+	}
+	
+	function removeItem(itemElement, itemName){
+		sendCommand({ command: "remove", item: itemName });
+		itemElement.className = itemElement.className.replace(" added", "");
+	}
+	
+	function buyItem(itemElement, itemName){
+		sendCommand({ command: "buy", item: itemName });
+		if (!itemElement.className.includes("added")) {
+			itemElement.className += " added";
+		}
+	}
+	
+	function sellItem(itemElement, itemName){
+		sendCommand({ command: "sell", item: itemName });
+		itemElement.className = itemElement.className.replace(" added", "");
+	}
+	
+	function changeGold(amount){
+		sendCommand({ command: "change_money", amount: amount });
+	}
+	
+	function getItemName(){
+		return document.getElementById("item-name").value;
+	}
+	
+	function addItemManually(itemId){
+		sendCommand({ command: "add", item: itemId });
+	}
+	
+	function removeItemManually(itemId){
+		sendCommand({ command: "remove", item: itemId });
+	}
+	
+	function activateAchievement(achievementCodename){
+		sendCommand({ command: "enable_achievement", achievement: achievementCodename });
+	}
+	
+	function fixGoldChange(){
+		var tf = document.getElementById('gold-amount');
+		var butt = document.getElementById('gold-button');
+		changeGold(parseInt(tf.value));
+		tf.value = "";
+		butt.setAttribute('disabled', 'true');
+	}
+	
+	function enableGoldButton(e){
+		if (e.keyCode == 13){
+			fixGoldChange();
+			return;
+		}
+		
+		var tf = document.getElementById('gold-amount');
+		var butt = document.getElementById('gold-button');
+		if (tf.value.length > 0){
+			butt.removeAttribute('disabled');
+		}else {
+			butt.setAttribute('disabled', 'true');
+		}
+	}
+</script>

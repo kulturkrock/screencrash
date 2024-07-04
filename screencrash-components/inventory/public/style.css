@@ -1,0 +1,311 @@
+* {
+	box-sizing: border-box;
+	-moz-box-sizing: border-box;
+	-webkit-box-sizing: border-box;
+	color:#a51d1a;
+}
+::-webkit-scrollbar {
+    display: none;
+}
+body{
+	margin-right:0;
+}
+
+#inventory {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 960px;
+	height: 720px;
+	z-index: 2;
+	background:url('/inventory-data/theme/inventory-background.jpg');
+}
+.inventory-header{
+	font-size:32px;
+	font-variant:small-caps;
+	text-align:center;
+	margin-top:10px;
+	margin-bottom:10px;
+}
+#inventory-gold-amount{
+	margin-top:12px;
+	font-size:30px;
+	width:100%;
+	text-align:center;
+}
+#inventory-internal {
+	display:flex;
+	flex-wrap:wrap;
+	justify-content:space-between;
+	padding:0px 70px 30px 70px;
+	width: 100%;
+	height: 100%;
+}
+.inventory-item {
+	display:none;
+	width: 130px;
+	height: 130px;
+	margin: 2px 17px;
+	background-image: url("/inventory-data/theme/inventory-item-border-odd.png");
+	background-repeat:no-repeat;
+	background-size:100% 100%;
+	flex: 0 0 auto;
+}
+.inventory-item:nth-child(2n+1){
+	background-image: url("/inventory-data/theme/inventory-item-border-even.png");
+}
+.inventory-item-icon {
+	width:100%;
+	height:100%;
+	background-size:80% 80%;
+	background-position:center;
+	background-repeat:no-repeat;
+}
+.inventory-item:first-child .inventory-item-icon{
+	background-image:url('/inventory-data/theme/inventory-money-icon.png');
+	background-size:52% 52%;
+	background-position:50% 60%;
+}
+
+#inventory-internal.large .inventory-item {
+	width: 110px;
+	height: 110px;
+	margin: 2px 12px;
+}
+
+#inventory-internal.superlarge .inventory-item {
+	width: 86px;
+	height: 86px;
+	margin: 2px 10px;
+}
+
+#inventory-internal.large #inventory-gold-amount,
+#inventory-internal.superlarge #inventory-gold-amount {
+	font-size:24px;
+}
+
+#inventory-notifications {
+	position: absolute;
+	left: 330px;
+	top: 310px;
+	min-width: 250px;
+	min-height: 100px;
+	z-index: 1;
+}
+.inventory-notification {
+	display: none;  /* flex */
+	align-items: center;
+	padding: 10px 20px 10px 10px;
+	margin-bottom: 5px;
+	border: 1px solid;
+	background-image: url("/inventory-data/theme/newitem-background.png");
+	background-repeat: no-repeat;
+	background-size: cover;
+	opacity: 0;
+}
+.inventory-notification-modifier {
+	font-size: 32px;
+	margin-right: 10px;
+}
+.inventory-notification-icon {
+	width: 64px;
+	height: 64px;
+	margin-right: 10px;
+}
+.inventory-notification-info {
+	font-size: 32px;
+	margin-top: 5px;
+}
+.inventory-notification.visible{
+	position:relative;
+	display:flex;
+	animation-name:inventory-notification;
+	animation-duration:5s;
+}
+@keyframes inventory-notification{
+	0% {opacity:0;}
+	5% {opacity:1;}
+	80% {opacity:1;}
+	100% {opacity:0;}
+}
+
+
+#achievements{
+	position:absolute;
+	top: 100px;
+	left: 975px;
+	width: 500px;
+	height:120px;
+}
+.achievement{
+	display:none; /*flex*/
+	width:100%;
+	padding: 10px;
+	margin-bottom:4px;
+	border: 1px solid #a51d1a;
+	border-radius:8px;
+	background-color:#fcecdc;
+	opacity:0;
+}
+.achievement-icon{
+	width:120px;
+	height:120px;
+}
+.achievement-info{
+	padding: 5px 0px 5px 10px;
+}
+.achievement-info *{
+	font-variant:small-caps;
+}
+.achievement-name{
+	font-size:32px;
+}
+.achievement-desc{
+	font-size:26px;
+}
+.achievement.visible{
+	position:relative;
+	animation-name:achievement;
+	animation-duration:10s;
+}
+@keyframes achievement{
+	0% {top:400px;left:0px;opacity:0;}
+	10% {top:400px;left:0px;opacity:1;}
+	40% {top:0px;left:0px;opacity:1;}
+	80% {top:0px;left:0px;opacity:1;}
+	100% {top:0px;left:0px;opacity:0;}
+}
+
+/* ----------------- UPDATE PAGE ------------------ */
+h3{
+	margin:5px 5px 5px 2px;
+}
+.status-area, .controls-area, .controls-area-items, .controls-area-achievements{
+	width: 50%;
+	float:left;
+}
+.item-area{
+	display:flex;
+	flex-wrap:wrap;
+	padding: 0px 10px 10px 0px;
+}
+
+#money{
+	font-size:1.1em;
+	font-weight:bold;
+}
+
+.controls-area input[type=button]:disabled{
+	opacity: 0.2;
+}
+
+.available-item{
+	width: 100px;
+	height: 202px;
+	margin:2px 5px 10px 2px;
+	border: 1px solid #a51d1a;
+	-webkit-user-select: none; /* Safari */        
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* IE10+/Edge */
+	user-select: none; /* Standard */
+}
+.available-item-icon{
+	width: 100px;
+	height: 100px;
+	border-bottom: 1px solid #a51d1a;
+	background-repeat:no-repeat;
+	background-position:center;
+	background-size:80% 80%;
+}
+.available-item-icon.added{
+	opacity:0.6;
+}
+.available-item-icon:hover{
+	background-color:#a51d1a20;
+	cursor:hand;
+	cursor:pointer;
+}
+.available-item-name, .available-item-cost, .available-item-controls{
+	height:25px;
+	text-align:center;
+	font-variant:small-caps;
+	background:#a51d1a;
+	color:white;
+}
+.available-item-name{
+	padding: 5px 5px 0px 5px;
+}
+.available-item-cost{
+	padding: 0px 5px 5px 5px;
+}
+.available-item-controls{
+	display:grid;
+	height: 50px;
+	grid-row: auto auto;
+	grid-column: auto auto;
+	border-top: 1px solid white;
+}
+.available-item-remove {
+	grid-row: 1;
+	grid-column: 1;
+}
+.available-item-add {
+	grid-row: 1;
+	grid-column: 2;
+}
+.available-item-sell {
+	grid-row: 2;
+	grid-column: 1;
+}
+.available-item-buy {
+	grid-row: 2;
+	grid-column: 2;
+}
+.available-item-add, .available-item-remove,
+.available-item-buy, .available-item-sell {
+	vertical-align:center;
+	line-height:25px;
+	height: 25px;
+	font-size: 16px;
+	color:white;
+}
+.available-item-remove, .available-item-sell{
+	border-right:1px solid white;
+}
+.available-item-remove, .available-item-add{
+	border-bottom:1px solid white;
+}
+.available-item-add:hover, .available-item-remove:hover,
+.available-item-buy:hover, .available-item-sell:hover {
+	opacity:0.6;
+	cursor:hand;
+	cursor:pointer;
+}
+
+.available-item.short {
+	height: 177px;
+}
+.available-item.short .available-item-controls {
+	height: 25px;
+}
+.available-item.short .available-item-remove,
+.available-item.short .available-item-add{
+	border-bottom:0px;
+}
+
+#achievement-manual-update{
+	margin-bottom:12px;
+}
+#achievement-validate{
+	display:none;
+	width:90%;
+	padding:4px;
+	border:1px solid #a51d1a;
+}
+#achievement-validate-name{
+	font-weight:bold;
+}
+#achievement-validate-description{
+	font-size:0.8em;
+	margin-bottom:5px;
+}

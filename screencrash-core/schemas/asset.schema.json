@@ -1,0 +1,16 @@
+{
+    "$id": "https://kulturkrock.se/asset.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Asset",
+    "description": "An asset object (e.g. audio file or video file)",
+    "type": "object",
+    "properties": {
+        "path": {
+            "title": "Asset path",
+            "description": "Path to asset relative to resource folder",
+            "type": "string"
+        }
+    },
+    "additionalProperties": false,
+    "required": ["path"]
+}

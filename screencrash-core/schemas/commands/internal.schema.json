@@ -1,0 +1,34 @@
+{
+    "$id": "https://kulturkrock.se/commands/internal.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Internal commands in Opus",
+    "description": "An internal command in an Opus to use for Screencrash",
+    "type": "object",
+    "oneOf": [
+        {
+            "title": "Print debug text",
+            "description": "Prints the given text in the console log",
+            "properties": {
+                "target": { "const": "internal" },
+                "cmd": { "const": "print" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "text": {
+                            "type": "string"
+                        }
+                    },
+                    "required": ["text"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        }
+    ]
+}

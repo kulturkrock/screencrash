@@ -1,0 +1,39 @@
+{
+    "$id": "https://kulturkrock.se/commands/ledController.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "LedController commands in Opus",
+    "description": "A ledController command in an Opus to use for Screencrash",
+    "type": "object",
+    "oneOf": [
+        {
+            "title": "On",
+            "description": "Turn on LED",
+            "properties": {
+                "target": { "const": "ledController" },
+                "cmd": { "const": "on" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action does",
+                    "type": "string"
+                }
+            },
+            "required": ["target", "cmd"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Off",
+            "description": "Turn off LED",
+            "properties": {
+                "target": { "const": "ledController" },
+                "cmd": { "const": "off" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action does",
+                    "type": "string"
+                }
+            },
+            "required": ["target", "cmd"],
+            "additionalProperties": false
+        }
+    ]
+}

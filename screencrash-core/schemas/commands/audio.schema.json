@@ -1,0 +1,466 @@
+{
+    "$id": "https://kulturkrock.se/commands/audio.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Audio commands in Opus",
+    "description": "An audio command in an Opus to use for Screencrash",
+    "type": "object",
+    "oneOf": [
+        {
+            "title": "Sync asset",
+            "description": "Sync asset to audio component resource folder. Don't do this in an Opus.",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "file" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "title": "Asset path",
+                            "description": "Destination path to asset relative to resource folder",
+                            "type": "string"
+                        },
+                        "data": {
+                            "title": "Data",
+                            "description": "Base64 encoded data",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["path", "data"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Add an audio clip",
+            "description": "Adds an audio clip and loads it into its own player",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "create" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "assets": {
+                    "title": "Asset",
+                    "description": "Asset to play. This command expects exactly ONE asset",
+                    "type": "array",
+                    "items": {
+                        "oneOf":[
+                            {
+                                "title": "Asset ID",
+                                "type": "string"
+                            },
+                            {"$ref": "../asset.schema.json#"}
+                        ]
+                    },
+                    "minLength": 1,
+                    "maxLength": 1
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID to use for this clip. Subsequent commands uses this ID to refer to this instance",
+                            "type": "string"
+                        },
+                        "looping": {
+                            "title": "Number of loops",
+                            "description": "Number of loops. 0 means infinitely many. Default 1",
+                            "type": "number",
+                            "default": 1
+                        },
+                        "autostart": {
+                            "title": "Autostart",
+                            "description": "True if clip should start immediately. Default true",
+                            "type": "boolean",
+                            "default": true
+                        },
+                        "seamless": {
+                            "title": "Seamless mode",
+                            "description": "Seamless mode allows seamless loops, but not all features (like fading) may work correctly.",
+                            "type": "boolean",
+                            "default": false
+                        },
+                        "start_at": {
+                            "title": "Start position",
+                            "description": "Position in audio file to start playback from, given in seconds. Float values are valid (up to 3 decimals)",
+                            "type": "number",
+                            "default": 0
+                        },
+                        "fadeIn": {
+                            "title": "Fade in",
+                            "description": "Fade in sound when added. Paused clips will pause the fade too (autostart=true is not required)",
+                            "type": "object",
+                            "properties": {
+                                "time": {
+                                    "title": "Fade duration",
+                                    "description": "Time to fade from start volume to target volume. May be a float",
+                                    "type": "number"
+                                },
+                                "from": {
+                                    "title": "Start volume",
+                                    "description": "Start volume. If not given the current volume will be used",
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                },
+                                "to": {
+                                    "title": "Target volume",
+                                    "description": "Target volume to reach after {time} seconds",
+                                    "type": "number",
+                                    "minimum": 0,
+                                    "maximum": 100
+                                }
+                            },
+                            "required": ["time", "to"],
+                            "additionalProperties": false
+                        },
+                        "fadeOut": {
+                            "title": "Fade out",
+                            "description": "Time from end of clip to start fade out (to silence). May be a float",
+                            "type": "number"
+                        }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "assets"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Play/Resume playback of audio",
+            "description": "Resume playback of audio clip",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "play" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Pause playback of audio",
+            "description": "Pause playback of audio clip",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "pause" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Stop playback of audio",
+            "description": "Stop playback of audio clip",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "destroy" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Set next file for audio",
+            "description": "Set next file for audio",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "set_next_file" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "assets": {
+                    "title": "Asset",
+                    "description": "Asset to play. This command expects exactly ONE asset",
+                    "type": "array",
+                    "items": {
+                        "oneOf":[
+                            {
+                                "title": "Asset ID",
+                                "type": "string"
+                            },
+                            {"$ref": "../asset.schema.json#"}
+                        ]
+                    },
+                    "minLength": 1,
+                    "maxLength": 1
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Toggle mute on audio",
+            "description": "Toggle mute of audio clip. The previous volume will remember and reused on unmuting",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "toggle_mute" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Set volume of audio clip",
+            "description": "Set volume of audio clip. Both mono and stereo settings are available",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "set_volume" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        },
+                        "volume": {
+                            "title": "Volume",
+                            "description": "Volume for both left/right",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                        },
+                        "volume_right": {
+                            "title": "Volume (right)",
+                            "description": "Volume for right speaker",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                        },
+                        "volume_left": {
+                            "title": "Volume (left)",
+                            "description": "Volume for left speaker",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                        }
+                    },
+                    "oneOf": [
+                        {
+                            "required": ["entityId", "volume"],
+                            "not": {
+                                "anyOf": [
+                                    { "required": ["volume_left"] },
+                                    {"required": ["volume_right"] }
+                                ]
+                            }
+                        },
+                        {
+                            "required": ["entityId", "volume_right"],
+                            "not": { "required": ["volume"] }
+                        },
+                        {
+                            "required": ["entityId", "volume_left"],
+                            "not": { "required": ["volume"] }
+                        }
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Set audio playback position",
+            "description": "Set audio playback position",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "seek" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        },
+                        "position": {
+                            "title": "Position",
+                            "description": "Position to play from, given in seconds. Float values are valid, up to 3 decimals",
+                            "type": "number"
+                        }
+                    },
+                    "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Set number of loops on audio",
+            "description": "Set the number of loops left on the audio, including the current one",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "set_loops" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        },
+                        "looping": {
+                            "title": "Number of loops",
+                            "description": "Number of loops, including current one. 0 means infinitely many.",
+                            "type": "number"
+                        }
+                    },
+                    "required": ["entityId", "looping"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Fade audio",
+            "description": "Fade audio",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "fade" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        },
+                        "time": {
+                            "title": "Fade time",
+                            "description": "Fade time in seconds. May be float",
+                            "type": "number"
+                        },
+                        "target": {
+                            "title": "Target volume",
+                            "description": "Volume to fade to",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100
+                        },
+                        "stopOnDone": {
+                            "title": "Stop clip after fade",
+                            "description": "Stop clip and destruct its player after fade has completed. Defaults to false",
+                            "type": "boolean"
+                        }
+                    },
+                    "required": ["entityId", "time", "target"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        }
+    ]
+}

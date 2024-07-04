@@ -1,0 +1,21 @@
+{
+    "env": {
+        "browser": true,
+        "commonjs": true,
+        "es2020": true,
+        "node": true
+    },
+    "extends": [
+        "standard"
+    ],
+    "parserOptions": {
+        "ecmaVersion": 11
+    },
+    "rules": {
+        "quotes": ["error", "single"],
+        "indent": ["error", 4, {"SwitchCase": 1}],
+        "semi": ["error", "always"],
+        "space-before-function-paren": ["error", "never"],
+        "padded-blocks": ["error", {"blocks": "never", "classes": "always"}]
+    }
+}
