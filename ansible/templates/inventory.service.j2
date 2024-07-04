@@ -1,0 +1,13 @@
+[Unit]
+Description=Inventory component
+
+[Service]
+Type=simple
+Environment=SCREENCRASH_CORE={{ core_addr }}
+Environment=SCREENCRASH_COMPONENT_ID=rpi_inventory
+ExecStart=/usr/bin/npm run dev
+WorkingDirectory=/opt/screencrash/inventory
+User={{ username }}
+
+[Install]
+WantedBy=multi-user.target
