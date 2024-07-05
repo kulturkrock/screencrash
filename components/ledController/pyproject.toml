@@ -1,0 +1,24 @@
+[project]
+name = "ledController"
+version = "0.1.0"
+dependencies = [
+    "websocket-client==1.2.3",
+]
+requires-python = ">=3.9"
+readme = "README.md"
+license = {text = "MIT"}
+
+
+[tool.pdm]
+distribution = false
+
+[[tool.pdm.source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[tool.pdm.dev-dependencies]
+dev = [
+    "watchdog==2.1.6",
+    "pyyaml==6.0.1",
+]
