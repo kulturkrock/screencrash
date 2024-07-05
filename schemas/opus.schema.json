@@ -1,0 +1,96 @@
+{
+    "$id": "https://kulturkrock.se/opus.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Opus",
+    "description": "An Opus to use for Screencrash",
+    "type": "object",
+    "properties": {
+        "startNode": {
+            "type": "string"
+        },
+        "nodes": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "node.schema.json#"
+            }
+        },
+        "action_templates": {
+            "type": "object",
+            "additionalProperties": {
+                "oneOf": [
+                    {
+                        "$ref": "action.schema.json#"
+                    },
+                    {
+                        "title": "Action list",
+                        "description": "List of multiple actions",
+                        "items": {
+                            "$ref": "action.schema.json#"
+                        },
+                        "minItems": 1
+                    },
+                    {
+                        "title": "Parametrized action",
+                        "description": "Action which accepts some dynamic elements",
+                        "type": "object",
+                        "properties": {
+                            "parameters": {
+                                "title": "Available parameters",
+                                "description": "Available dynamic parameters",
+                                "type": "object",
+                                "additionalProperties": {
+                                    "title": "Parameter",
+                                    "description": "Available parameter",
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "path": {
+                                                "title": "JSONSchema path",
+                                                "description": "JSONSchema path to action option affected by this parameter",
+                                                "type": "string"
+                                            }
+                                        },
+                                        "required": ["path"],
+                                        "additionalProperties": false
+                                    },
+                                    "minItems": 1
+                                },
+                                "minProperties": 1
+                            },
+                            "actions": {
+                                "title": "Actions",
+                                "description": "Sub-actions that uses these parameters",
+                                "type": "array",
+                                "items": {
+                                    "oneOf": [
+                                        {
+                                            "title": "Action ID",
+                                            "type": "string"
+                                        },
+                                        { "$ref": "action.schema.json#" }
+                                    ]
+                                },
+                                "minItems": 1
+                            }
+                        },
+                        "required": ["parameters", "actions"],
+                        "additionalProperties": false
+                    }
+                ]
+            }
+        },
+        "assets": {
+            "type": "object",
+            "additionalProperties": {
+                "$ref": "asset.schema.json#"
+            },
+            "required": ["script"]
+        },
+        "ui": {
+            "$ref": "ui.schema.json#"
+        }
+    },
+    "additionalProperties": false,
+    "required": ["startNode", "nodes", "action_templates", "assets"]
+}

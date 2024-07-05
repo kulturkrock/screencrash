@@ -1,0 +1,66 @@
+* {
+    box-sizing: border-box;
+}
+button {
+    background: #ffffff00;
+    border: 1px solid wheat;
+    color: wheat;
+    padding: 0.5em;
+}
+button:hover {
+    cursor: pointer;
+    background: #ffffff20;
+}
+button:active {
+    background: #ffffff40;
+}
+
+/* ---------- Custom scrollbar ---------- */
+::-webkit-scrollbar {
+    width: 0.8em;
+}
+::-webkit-scrollbar-track {
+    box-shadow: inset 0 0 4px grey;
+    background: rgb(102, 31, 37);
+}
+::-webkit-scrollbar-thumb {
+    background: wheat;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #f5deb3e0;
+}
+
+/* ---------------- CLASSES etc. -------------- */
+
+.gridContainer {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    display: grid;
+    height: 100%;
+    width: 100%;
+    grid-template-rows: 30px minmax(0, 1fr);
+}
+
+.header {
+    background: rgb(102, 31, 37);
+    color: wheat;
+    grid-row: 1;
+    grid-column: 1;
+    padding: 5px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.addressInput {
+    background: rgb(85, 25, 30);
+    border: 0px;
+    color: wheat;
+}
+
+.screen {
+    grid-column: 1;
+    grid-row: 2;
+}

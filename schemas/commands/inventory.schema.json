@@ -1,0 +1,349 @@
+{
+    "$id": "https://kulturkrock.se/commands/inventory.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Inventory commands in Opus",
+    "description": "An inventory command in an Opus to use for Screencrash",
+    "type": "object",
+    "oneOf": [
+        {
+            "title": "Sync asset",
+            "description": "Sync asset to screen component resource folder. Don't do this in an Opus.",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "file" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "path": {
+                            "title": "Asset path",
+                            "description": "Destination path to all required resources zipped in file. File should be called inventory-data.zip",
+                            "type": "string"
+                        },
+                        "data": {
+                            "title": "Data",
+                            "description": "Base64 encoded data",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["path", "data"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Set up and load resources",
+            "description": "Loads inventory-data.json to memory and creates base structures for inventory",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "setup" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "assets": {
+                    "title": "Inventory assets",
+                    "description": "Inventory assets folder",
+                    "type": "array",
+                    "items": {
+                        "oneOf":[
+                            {
+                                "title": "Asset ID",
+                                "type": "string"
+                            },
+                            {"$ref": "../asset.schema.json#"}
+                        ]
+                    },
+                    "minLength": 1,
+                    "maxLength": 1
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "color": {
+                            "title": "Color",
+                            "description": "Color theme to use for text etc.",
+                            "type": "string"
+                        }
+                    },
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "assets", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Add item",
+            "description": "Add item to inventory",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "add" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "title": "Item name",
+                            "description": "Item name as given in inventory-data.json",
+                            "type": "string"
+                        },
+                        "items": {
+                            "title": "Item names",
+                            "description": "Item names. Comma separated and given as in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "oneOf": [
+                        { "required": ["item"] },
+                        { "required": ["items"] }
+                    ],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Remove item",
+            "description": "Remove item from inventory",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "remove" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "title": "Item name",
+                            "description": "Item name as given in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["item"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Buy item",
+            "description": "Buy item. This adds the item and removes the cost from current gold",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "buy" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "title": "Item name",
+                            "description": "Item name as given in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["item"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Sell item",
+            "description": "Sell item. This removes the item and adds the cost to the gold",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "sell" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "item": {
+                            "title": "Item name",
+                            "description": "Item name as given in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["item"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Change money",
+            "description": "Changes money amount by given parameter",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "change_money" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "amount": {
+                            "title": "Amount",
+                            "description": "Amount of money to add/remove. Warning: No limits apply, the result may be negative money",
+                            "type": "number"
+                        }
+                    },
+                    "required": ["amount"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Enable achievement",
+            "description": "Enables achievement and shows on web page for some seconds",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "enable_achievement" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "achievement": {
+                            "title": "Achievement name",
+                            "description": "Achivement name as given in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["achievement"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Undo achievement",
+            "description": "Undo achievement. This will not trigger a visual change",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "undo_achievement" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "achievement": {
+                            "title": "Achievement name",
+                            "description": "Achivement name as given in inventory-data.json",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["achievement"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Set currency",
+            "description": "Set display currency",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "set_currency" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "currency": {
+                            "title": "Currency name",
+                            "description": "Currency name to be displayed",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["currency"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Set items section visibility",
+            "description": "Set whether items part should be visible (or only achievements)",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "set_items_visibility" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "visible": {
+                            "title": "Visibility of items section",
+                            "description": "If set to false, only achievements section is shown. If true, all is visible",
+                            "type": "boolean"
+                        }
+                    },
+                    "required": ["visible"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Inventory: Clear active item animations",
+            "description": "Clears active item animations. Could be nice to do before set_items_visibility(false)",
+            "properties": {
+                "target": { "const": "inventory" },
+                "cmd": { "const": "clear_item_animations" },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                }
+            },
+            "required": ["target", "cmd"],
+            "additionalProperties": false
+        }
+    ]
+}

@@ -1,0 +1,72 @@
+.slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #f5deb360;
+    outline: none;
+    opacity: 0.7;
+    -webkit-transition: 0.2s;
+    transition: opacity 0.2s;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: wheat;
+    cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: wheat;
+    cursor: pointer;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border-color: wheat;
+    border-width: 1px;
+    border-style: solid;
+}
+.tabBar {
+    display: flex;
+    height: 2em;
+    line-height: 2em;
+    vertical-align: middle;
+    border-bottom: 1px solid wheat;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
+.tabBar::-webkit-scrollbar {
+    display: none; /* WebKit */
+}
+.tab {
+    padding: 0em 1em;
+    white-space: nowrap;
+    border-right: 1px solid wheat;
+}
+.tab:hover {
+    cursor: pointer;
+}
+.tab.selected {
+    background: wheat;
+    color: #661f25;
+}
+.tabContent {
+    flex: 1;
+    overflow-y: auto;
+}
+.shortName {
+    font-size: 0.8em;
+    padding: 0.25em;
+}

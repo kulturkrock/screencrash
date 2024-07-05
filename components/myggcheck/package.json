@@ -1,0 +1,32 @@
+{
+  "name": "screencrash-component-myggcheck",
+  "version": "1.0.0",
+  "description": "MyggCheck component for screencrash",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "npx electron .",
+    "dev": "nodemon --exec npx electron .",
+    "lint": "node_modules/.bin/eslint ."
+  },
+  "repository": "https://github.com/kulturkrock/screencrash-components",
+  "keywords": [
+    "screencrash",
+    "kulturkrock",
+    "myggcheck"
+  ],
+  "author": "Kulturkrock",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^17.1.2",
+    "eslint": "^7.5.0",
+    "eslint-config-standard": "^14.1.1",
+    "eslint-plugin-import": "^2.22.0",
+    "eslint-plugin-node": "^11.1.0",
+    "eslint-plugin-promise": "^4.2.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "nodemon": "^2.0.15"
+  },
+  "dependencies": {
+    "jquery": "^3.6.0"
+  }
+}

@@ -1,0 +1,43 @@
+.screen {
+    background: rgb(75, 14, 14);
+    color: wheat;
+    height: 100%;
+    padding: 2em;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 20em 25em 1fr;
+    column-gap: 1em;
+}
+.screen.noLeftContainer {
+    grid-template-columns: 1fr 2fr;
+}
+
+.leftContainer {
+    height: 100%;
+    overflow: hidden;
+}
+.leftContainer.hidden {
+    display: none;
+}
+
+.statusViewContainer {
+    height: 80%;
+}
+
+.settingsBox {
+    border-color: wheat;
+    border-width: 1px;
+    border-style: solid;
+    height: 20%;
+    overflow-y: auto;
+}
+
+.textRow {
+    padding: 0.4em 1em;
+}
+.textRow:first-child {
+    padding: 1em 1em 0.4em 1em;
+}
+.textRow:last-child {
+    padding: 0.4em 1em 1em 1em;
+}

@@ -1,0 +1,20 @@
+{"command": "add", "entityId": 1337, "path": "res/sample.mp3", "loops": 3}
+{"command": "add", "entityId": 1338, "path": "res/sample.mp3", "loops": 3}
+sleep 0.1
+{"command": "play", "entityId": 1337}
+sleep 0.5
+{"command": "play", "entityId": 1338}
+sleep 5
+{"command": "pause", "entityId": 1337}
+sleep 1
+{"command": "play", "entityId": 1337}
+sleep 5
+{"command": "set_volume", "entityId": 1337, "volume": 25}
+sleep 5
+{"command": "set_volume", "entityId": 1337, "volume": 90}
+sleep 6
+{"command": "set_volume", "entityId": 1337, "volume_left": 100, "volume_right": 0}
+sleep 20
+{"command": "stop", "entityId": 1337}
+sleep 10
+{"command": "stop", "entityId": 1338}

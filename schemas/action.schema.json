@@ -1,0 +1,16 @@
+{
+    "$id": "https://kulturkrock.se/action.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Action",
+    "description": "An action such as starting or stopping an effect",
+    "type": "object",
+    "oneOf": [
+        { "$ref": "commands/internal.schema.json"},
+        { "$ref": "commands/audio.schema.json"},
+        { "$ref": "commands/image.schema.json"},
+        { "$ref": "commands/video.schema.json"},
+        { "$ref": "commands/web.schema.json"},
+        { "$ref": "commands/inventory.schema.json"},
+        { "$ref": "commands/ledController.schema.json"}
+    ]
+}

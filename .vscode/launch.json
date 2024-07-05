@@ -1,0 +1,29 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+          "name": "Run Media Component",
+          "type": "node",
+          "request": "launch",
+          "cwd": "${workspaceFolder}/media",
+          "runtimeExecutable": "${workspaceFolder}/components/media/node_modules/.bin/electron",
+          "windows": {
+            "runtimeExecutable": "${workspaceFolder}/components/media/node_modules/.bin/electron.cmd"
+          },
+          "args" : ["."],
+          "outputCapture": "std"
+        },
+        {
+            "name": "Run Audio Component",
+            "type": "debugpy",
+            "request": "launch",
+            "cwd": "${workspaceFolder}/components/audio",
+            "program": "${workspaceFolder}/components/audio/src/main.py",
+            "args" : [],
+            "console": "integratedTerminal"
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+watchdog = "==2.1.6"
+pyaudacity = "*"
+
+[packages]
+websockets = "==10.0"
+aiofiles = "==0.8.0"
+pyyaml = "==6.0"
+pymupdf = "*"
+jsonpath_ng = "==1.5.3"
+
+[requires]
+python_version = "3.9"

@@ -1,0 +1,67 @@
+{
+    "$id": "https://kulturkrock.se/ui.schema.json",
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "UI configuration",
+    "description": "UI configuration properties",
+    "type": "object",
+    "properties": {
+        "shortcuts": {
+            "title": "Shortcut commands",
+            "description": "Shortcut commands",
+            "type": "array",
+            "items": {
+                "title": "Shortcut command",
+                "description": "Shortcut command",
+                "type": "object",
+                "properties": {
+                    "title": {
+                        "title": "Shortcut title",
+                        "description": "Shortcut title which will be shown in the UI",
+                        "type": "string"
+                    },
+                    "hotkey": {
+                        "title": "Hotkey",
+                        "description": "Hotkey to trigger this shortcut",
+                        "type": "object",
+                        "properties": {
+                            "key": {
+                                "title": "Hotkey key",
+                                "description": "Hotkey key (one character only)",
+                                "type": "string"
+                            },
+                            "modifiers": {
+                                "title": "Modifiers",
+                                "description": "Special key modifiers required for triggering",
+                                "type": "array",
+                                "items": {
+                                    "type": "string",
+                                    "enum": ["ctrl", "alt", "shift"]
+                                }
+                            }
+                        },
+                        "additionalProperties": false,
+                        "required": ["key"]
+                    },
+                    "actions": {
+                        "title": "Actions",
+                        "description": "Actions to trigger when shortcut triggers",
+                        "type": "array",
+                        "items": {
+                            "oneOf": [
+                                {
+                                    "title": "Action ID",
+                                    "type": "string"
+                                },
+                                {"$ref": "action.schema.json#"}
+                            ]
+                        }
+                    }
+                },
+                "additionalProperties": false,
+                "required": ["title", "actions"]
+            }
+        }
+    },
+    "additionalProperties": false,
+    "required": []
+}

@@ -1,0 +1,9 @@
+[Unit]
+Description=Screencrash bluetooth listener
+
+[Service]
+ExecStart=/usr/bin/python /home/pi/screencrash_listener.py
+Restart=Always
+
+[Install]
+WantedBy=multi-user.target
