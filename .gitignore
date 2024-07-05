@@ -105,3 +105,5 @@ venv.bak/
 
 # Mac DS_Store files
 .DS_Store
+
+.pdm-python

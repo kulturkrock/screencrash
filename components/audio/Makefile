@@ -3,10 +3,10 @@
 default: init dev
 
 init:
-	pipenv install --dev
+	pdm install
 
 dev: init
-	pipenv run watchmedo auto-restart \
+	pdm run watchmedo auto-restart \
 		--patterns="*.py" \
 		--recursive \
 		python -- src/main.py
