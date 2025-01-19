@@ -5,8 +5,8 @@
   "main": "main.js",
   "scripts": {
     "start": "npx electron .",
-    "dev": "nodemon --exec npx electron .",
-    "lint": "node_modules/.bin/eslint ."
+    "dev": "nodemon --exec npx electron --no-sandbox .",
+    "lint": "node_modules/.bin/eslint --no-sandbox ."
   },
   "repository": "https://github.com/kulturkrock/screencrash-components",
   "keywords": [
