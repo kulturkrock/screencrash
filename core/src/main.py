@@ -33,7 +33,7 @@ class Core:
     async def main(self):
         """The main loop."""
         opus_file = os.environ.get("OPUS", "real_opus.yaml")
-        sync_assets = os.environ.get("SCREENCRASH_SYNC_ASSETS", "true") == "true"
+        sync_assets = os.environ.get("SCREENCRASH_SYNC_ASSETS", "false") == "true"
         exit_on_validation_failure = (
             os.environ.get("SCREENCRASH_EXIT_ON_VALIDATION_FAILURE", "true") == "true"
         )
