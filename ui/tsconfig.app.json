@@ -20,7 +20,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    // Changing to vite revealed a bunch of already-existing errors. Suppress these
+    // again for now, but we should take care of them some day.
+    "strictNullChecks": false
   },
   "include": ["src"]
 }

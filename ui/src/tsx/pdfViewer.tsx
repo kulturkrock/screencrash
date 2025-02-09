@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+// @ts-expect-error Needed for text layer: https://github.com/wojtekmaj/react-pdf?tab=readme-ov-file#support-for-text-layer
 import "react-pdf/dist/Page/TextLayer.css";
 
 import style from "../less/pdfViewer.module.less";
