@@ -525,11 +525,12 @@ nodes:
   "333":
     prompt: "Jag tror att du kommer ha mer användning av den än jag. [Link går mot nöten]"
     next: "336a"
-    actions:  
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0333 nytt foremal.wav"
+    # Missing from new drive after migration as of 2025-02-01
+    # actions:
+    #   - target: "audio"
+    #     cmd: "create"
+    #     assets:
+    #       - path: "Till föreställningen/0333 nytt foremal.wav"
   "336a":
     prompt: "Vi ska ju inte glömma nöten. [Link och vännen går av scen]"
     next: "336b"
@@ -1497,7 +1498,7 @@ nodes:
           visible: true
           entityId: "overlay1006"
   "1009":
-    prompt: "Du... följer en karta? Vart leder den? \"Skymningsspegeln\"? [när?]"
+    prompt: 'Du... följer en karta? Vart leder den? "Skymningsspegeln"? [när?]'
     next: "1011a"
     actions:
       - target: "image"
@@ -1512,7 +1513,7 @@ nodes:
         params:
           entityId: "overlay1006"
   "1011a":
-    prompt: "\"Du är vårt enda hopp\"... \"Zelda\" [när?]"
+    prompt: '"Du är vårt enda hopp"... "Zelda" [när?]'
     next: "1011b"
     actions:
       - target: "image"
@@ -2773,7 +2774,7 @@ nodes:
             to: 1
             time: 1
   "1718c":
-    prompt: "Vad hände med \"Det blir alltid en nästa omgång\"?"
+    prompt: 'Vad hände med "Det blir alltid en nästa omgång"?'
     next: "1718d"
     actions:
       - target: "video"
@@ -2786,10 +2787,6 @@ nodes:
   "1718d":
     prompt: "[Nu är vi klara!]"
     next: "1"
-
-
-  
-
 
 action_templates: {}
 assets:

@@ -1,12 +1,7 @@
 {
-  "compilerOptions": {
-    "outDir": "./build/tsx",
-    "noImplicitAny": true,
-    "module": "esnext",
-    "target": "esnext",
-    "jsx": "react",
-    "allowJs": true,
-    "sourceMap": true
-  },
-  "includes": ["./externals.d.ts"]
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
 }

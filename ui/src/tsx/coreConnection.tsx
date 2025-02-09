@@ -26,6 +26,18 @@ const eventNames = {
   uiconfig: "uiconfig",
 };
 
+interface CoreConnectionEventMap {
+  connection: CustomEvent<IConnectionState>;
+  nodes: CustomEvent<INodeCollection>;
+  uiconfig: CustomEvent<IUIConfig>;
+  history: CustomEvent<string[]>;
+  script: CustomEvent<string>;
+  components: CustomEvent<IComponentState[]>;
+  effects: CustomEvent<IEffect[]>;
+  logs: CustomEvent<ILogMessage[]>;
+  "log-added": CustomEvent<ILogMessage>;
+}
+
 /**
  * This class handles the communication with the core.
  * The user calls methods directly to
@@ -38,7 +50,7 @@ interface ICoreConnection extends EventTarget {
   nextNode(runActions: boolean): void;
   sendUICommand(
     messageType: string,
-    params: { [index: string]: unknown },
+    params: { [index: string]: unknown }
   ): void;
   runActions(): void;
   choosePath(choiceIndex: number, runActions: boolean): void;
@@ -50,41 +62,17 @@ interface ICoreConnection extends EventTarget {
   handleComponentRestart(componentId: string): void;
 
   // Events
-  addEventListener(
-    event: "connection",
-    listener: (event: CustomEvent<IConnectionState>) => void,
+  addEventListener<T extends keyof CoreConnectionEventMap>(
+    type: T,
+    listener: (this: ICoreConnection, event: CoreConnectionEventMap[T]) => void,
+    options?: boolean | AddEventListenerOptions
   ): void;
+
+  // the fallback for any event names not in our map
   addEventListener(
-    event: "nodes",
-    listener: (event: CustomEvent<INodeCollection>) => void,
-  ): void;
-  addEventListener(
-    event: "uiconfig",
-    listener: (event: CustomEvent<IUIConfig>) => void,
-  ): void;
-  addEventListener(
-    event: "history",
-    listener: (event: CustomEvent<string[]>) => void,
-  ): void;
-  addEventListener(
-    event: "script",
-    listener: (event: CustomEvent<string>) => void,
-  ): void;
-  addEventListener(
-    event: "components",
-    listener: (event: CustomEvent<IComponentState[]>) => void,
-  ): void;
-  addEventListener(
-    event: "effects",
-    listener: (event: CustomEvent<IEffect[]>) => void,
-  ): void;
-  addEventListener(
-    event: "logs",
-    listener: (event: CustomEvent<ILogMessage[]>) => void,
-  ): void;
-  addEventListener(
-    event: "log-added",
-    listener: (event: CustomEvent<ILogMessage>) => void,
+    type: string,
+    listener: (this: ICoreConnection, ev: Event) => void,
+    options?: boolean | AddEventListenerOptions
   ): void;
 }
 
@@ -109,7 +97,7 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
         detail: {
           connected: isConnected,
         },
-      }),
+      })
     );
   }
 
@@ -127,45 +115,46 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
           this.dispatchEvent(
             new CustomEvent(eventNames.history, {
               detail: data,
-            }),
+            })
           );
           break;
         case "nodes":
           this.dispatchEvent(
             new CustomEvent(eventNames.nodes, {
               detail: data,
-            }),
+            })
           );
           break;
         case "uiconfig":
           this.dispatchEvent(
             new CustomEvent(eventNames.uiconfig, {
               detail: data,
-            }),
+            })
           );
+          break;
         case "script":
           this.dispatchEvent(
-            new CustomEvent(eventNames.script, { detail: data }),
+            new CustomEvent(eventNames.script, { detail: data })
           );
           break;
         case "components":
           this.dispatchEvent(
-            new CustomEvent(eventNames.components, { detail: data }),
+            new CustomEvent(eventNames.components, { detail: data })
           );
           break;
         case "effects":
           this.dispatchEvent(
-            new CustomEvent(eventNames.effects, { detail: data }),
+            new CustomEvent(eventNames.effects, { detail: data })
           );
           break;
         case "logs":
           this.dispatchEvent(
-            new CustomEvent(eventNames.logs, { detail: data }),
+            new CustomEvent(eventNames.logs, { detail: data })
           );
           break;
         case "log-added":
           this.dispatchEvent(
-            new CustomEvent(eventNames.logAdded, { detail: data }),
+            new CustomEvent(eventNames.logAdded, { detail: data })
           );
           break;
         default:
@@ -193,7 +182,7 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
 
   public sendUICommand(
     messageType: string,
-    params: { [index: string]: unknown },
+    params: { [index: string]: unknown }
   ): void {
     this.socket.send(JSON.stringify({ messageType, ...params }));
   }
@@ -204,7 +193,7 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
 
   public choosePath(choiceIndex: number, runActions: boolean): void {
     this.socket.send(
-      JSON.stringify({ messageType: "choose-path", choiceIndex, runActions }),
+      JSON.stringify({ messageType: "choose-path", choiceIndex, runActions })
     );
   }
 
@@ -290,7 +279,7 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
     this.socket.send(
       JSON.stringify({
         messageType: "clear-logs",
-      }),
+      })
     );
   }
 
@@ -310,5 +299,6 @@ class RealCoreConnection extends EventTarget implements ICoreConnection {
     this.socket.send(JSON.stringify(message));
   }
 }
+export type { ICoreConnection };
 
-export { ICoreConnection, RealCoreConnection };
+export { RealCoreConnection };

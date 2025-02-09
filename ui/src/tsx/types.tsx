@@ -88,7 +88,7 @@ interface ILogMessage {
 // Empty object, since there is no built-in for it
 type IEmpty = Record<never, never>;
 
-export {
+export type {
   INodeChoice,
   IAction,
   INode,
@@ -96,7 +96,6 @@ export {
   IShortcut,
   IUIConfig,
   IEffect,
-  EffectType,
   IEffectActionEvent,
   IComponentInfo,
   IComponentState,
@@ -104,3 +103,5 @@ export {
   ILogMessage,
   IEmpty,
 };
+
+export { EffectType };

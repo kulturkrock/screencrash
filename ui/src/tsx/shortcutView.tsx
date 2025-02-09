@@ -1,8 +1,7 @@
 import * as React from "react";
-import { INodeCollection } from "types";
 
 import style from "../less/shortcutView.module.less";
-import { IShortcut } from "./types";
+import { IShortcut, INodeCollection } from "./types";
 
 interface IProps {
   shortcuts: IShortcut[];
@@ -10,7 +9,7 @@ interface IProps {
   onTriggerPredefinedActions: (actions: string[]) => void;
   onSendUIMessage: (
     messageType: string,
-    params: { [index: string]: unknown },
+    params: { [index: string]: unknown }
   ) => void;
 }
 
@@ -41,7 +40,7 @@ class ShortcutView extends React.PureComponent<IProps, IState> {
                 <option key={nodeKey} value={nodeKey}>
                   {`${nodeKey}. ${this.props.nodes[nodeKey].prompt.substring(
                     0,
-                    25 - nodeKey.length,
+                    25 - nodeKey.length
                   )}`}
                 </option>
               ))}

@@ -1,5 +1,5 @@
-import * as React from "react";
-import * as ReactDOM from "react-dom";
+import { PureComponent, StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 
 import { RealCoreConnection, ICoreConnection } from "./coreConnection";
 import { LiveScreen } from "./liveScreen";
@@ -12,7 +12,7 @@ interface IState {
   isConnected: boolean;
 }
 
-class Main extends React.PureComponent<IEmpty, IState> {
+class Main extends PureComponent<IEmpty, IState> {
   constructor(props: IEmpty) {
     super(props);
     const queryParams = new URLSearchParams(window.location.search);
@@ -63,4 +63,8 @@ class Main extends React.PureComponent<IEmpty, IState> {
   }
 }
 
-ReactDOM.render(<Main />, document.getElementById("super-container"));
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <Main />
+  </StrictMode>
+);

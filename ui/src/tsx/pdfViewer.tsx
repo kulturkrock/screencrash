@@ -1,7 +1,14 @@
 import * as React from "react";
-import { Document, Page } from "react-pdf/dist/esm/entry.webpack";
+import { Document, Page, pdfjs } from "react-pdf";
+// @ts-expect-error Needed for text layer: https://github.com/wojtekmaj/react-pdf?tab=readme-ov-file#support-for-text-layer
+import "react-pdf/dist/Page/TextLayer.css";
 
 import style from "../less/pdfViewer.module.less";
+
+pdfjs.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url
+).toString();
 
 interface IProps {
   script: string;
@@ -65,7 +72,7 @@ class PdfViewer extends React.PureComponent<IProps, IState> {
     ) {
       this.scrollToLocation(
         this.props.currentPage,
-        this.props.currentLocationOnPage,
+        this.props.currentLocationOnPage
       );
     }
   }
