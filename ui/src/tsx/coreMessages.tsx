@@ -18,7 +18,7 @@ interface ComponentRestartMessage {
   componentId: string;
 }
 
-export {
+export type {
   PredefinedActionsTrigger,
   OnTheFlyAction,
   ComponentResetMessage,

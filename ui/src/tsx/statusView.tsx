@@ -39,7 +39,7 @@ interface IProps {
   onTriggerPredefinedActions: (actions: string[]) => void;
   onSendUIMessage: (
     messageType: string,
-    params: { [index: string]: unknown },
+    params: { [index: string]: unknown }
   ) => void;
   onEffectAction: (event: IEffectActionEvent) => void;
   onComponentReset: (componentId: string) => void;
@@ -124,7 +124,7 @@ class StatusView extends React.PureComponent<IProps, IState> {
 
     if (
       this.props.components.filter(
-        (comp) => comp.info.componentName === "inventory",
+        (comp) => comp.info.componentName === "inventory"
       ).length !== 0
     ) {
       result.push({
@@ -219,7 +219,7 @@ function TabContent(propsData: IPropsTab): JSX.Element {
     );
   } else if (propsData.tabName === tabs.inventory) {
     const inventoryComponents = propsData.props.components.filter(
-      (comp) => comp.info.componentName === "inventory",
+      (comp) => comp.info.componentName === "inventory"
     );
     if (inventoryComponents.length > 0) {
       return (
@@ -231,8 +231,9 @@ function TabContent(propsData: IPropsTab): JSX.Element {
     } else {
       return <div>Error. Could not find any inventory</div>;
     }
+  } else {
+    return <div>Error. Unknown tab</div>;
   }
-  return null;
 }
 
 export { StatusView };
