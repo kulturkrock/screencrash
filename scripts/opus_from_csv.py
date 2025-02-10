@@ -30,6 +30,7 @@ def get_actions(
     asset_dirname: str,
     node_id: str,
     last_image_id: str,
+    node_index: int,
 ):
     extension = filename.split(".")[-1]
     if extension in ["png"]:
@@ -66,13 +67,17 @@ def get_actions(
 
     entity_id = f"{node_id}_{filename}"
     if target == "image":
-        params = {"entityId": entity_id, "visible": True}
+        params = {
+            "entityId": entity_id,
+            "visible": True,
+            "layer": 9999 - node_index,
+        }
         if (
             fade is not None and remove_action is None
         ):  # If we have a previous image we fade that out instead
             params["fadeIn"] = {"from": 0, "to": 1, "time": fade}
     elif target == "video":
-        params = {"entityId": entity_id, "visible": True}
+        params = {"entityId": entity_id, "visible": True, "layer": 10000}
         if fade is not None:
             params["fadeIn"] = {"from": 0, "to": 1, "time": fade}
     elif target == "audio":
@@ -103,14 +108,14 @@ def convert_opus(
     last_id = None
     last_image_id = None
 
-    for row in csv_rows:
+    for i, row in enumerate(csv_rows):
         current_id = get_free_id(row.line_number, nodes)
 
         node = {"prompt": row.cue}
 
         if row.filename is not None:
             actions, image_id_to_remove = get_actions(
-                row.filename, row.fade, asset_dirname, current_id, last_image_id
+                row.filename, row.fade, asset_dirname, current_id, last_image_id, i
             )
             node["actions"] = actions
             if image_id_to_remove is not None:
