@@ -57,7 +57,7 @@ class CsvRow:
 
         if self.target not in TARGET_ALIASES:
             if self.target:
-                error(self.rownr, f"Invalid target: {self.target}")
+                error(self.rownr, f"Invalid target: '{self.target}'")
             elif self.filename != Path():
                 error(self.rownr, f"Empty target should not have a file ({self.filename})")
         elif self.target == "clear":
@@ -73,11 +73,11 @@ class CsvRow:
 
 
 def warning(rownr: Any, msg: Any):
-    logging.warning(f"[row {rownr}] {msg}")
+    logging.warning(f"{rownr:11d} | {msg}")
     STATISTICS["warnings"] += 1
 
 def error(rownr: Any, msg: Any):
-    logging.error(f"[ERROR in row {rownr}] {msg}")
+    logging.error(f"ERROR {rownr:5d} | {msg}")
     STATISTICS["errors"] += 1
 
 
@@ -92,6 +92,7 @@ def get_free_id(line: int, nodes: YamlDict) -> str:
 def get_actions(
     row: CsvRow,
     assets_dir: Path,
+    output_dir: Path,
     node_id: str,
     last_image_id: str,
     node_index: int,
@@ -135,12 +136,20 @@ def get_actions(
             "assets": [{"path": str(assets_dir / row.filename)}],
             "params": params,
         })
+        if not (output_dir / assets_dir / row.filename).is_file():
+            for suffix in TARGET_SUFFIXES[row.target]:
+                newfile = row.filename.with_suffix(suffix)
+                if (output_dir / assets_dir / newfile).is_file():
+                    row.filename = newfile
+                    break
+            else:
+                warning(row.rownr, f"Missing {row.target}: {row.filename}")
 
     image_id_to_remove = entity_id if row.target == "image" else ""
     return actions, image_id_to_remove
 
 
-def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path) -> YamlDict:
+def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path, output_dir: Path) -> YamlDict:
     nodes: YamlDict = {}
     start_node = ""
     last_id = ""
@@ -152,7 +161,7 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path) -> Yaml
 
         if row.filename:
             actions, image_id_to_remove = get_actions(
-                row, assets_dir, current_id, last_image_id, node_index
+                row, assets_dir, output_dir, current_id, last_image_id, node_index
             )
             node["actions"] = actions
             if image_id_to_remove:
@@ -189,9 +198,10 @@ def main(args: argparse.Namespace):
             except ValueError as err:
                 error(row.get(ROWNR), f"{err.__class__.__name__}: {err}")
 
-    script = args.script.relative_to(args.output.parent)
-    assets_dir = args.assets_dir.relative_to(args.output.parent)
-    opus = convert_opus(csv_rows, script, assets_dir)
+    output_dir = args.output.parent
+    script = args.script.relative_to(output_dir)
+    assets_dir = args.assets_dir.relative_to(output_dir)
+    opus = convert_opus(csv_rows, script, assets_dir, output_dir)
 
     with open(args.output, "w") as f:
         yaml.safe_dump(opus, f, sort_keys=False, allow_unicode=True)
@@ -226,4 +236,4 @@ if __name__ == "__main__":
 
     logging.basicConfig(format="{message}", style="{", level=args.loglevel)
     main(args)
-    print("Done...", STATISTICS)
+    print(f"Finished    | {STATISTICS['errors']} errors, {STATISTICS['warnings']} warnings")
