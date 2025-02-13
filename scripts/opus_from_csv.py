@@ -14,6 +14,7 @@ CUE = "Stickreplik"
 TARGET = "Filtyp"
 FILENAME = "Filnamn"
 FADE = "Fade-in"
+HOTKEY = "Snabbval"
 
 TARGET_ALIASES = {
     "clear": ["x", "-", "–", "—", "rensa"],
@@ -24,10 +25,13 @@ TARGET_ALIASES = {
 
 TARGET_SUFFIXES: dict[str, list[str]] = {
     "clear": [],
-    "image": [".jpg", ".png"],
+    "image": [".jpg", ".gif", ".png"],
     "video": [".mp4"],
     "audio": [".mp3", ".wav"],
 }
+
+ALLOWED_HOTKEYS = set(string.ascii_lowercase + string.digits) - set("asqwert")
+HOTKEY_MODIFIERS = {"shift", "ctrl", "alt"}
 
 STATISTICS = {
     "warnings": 0,
@@ -43,6 +47,7 @@ class CsvRow:
     target: str
     filename: Path
     fade: int
+    hotkey: list[str]
 
     def __init__(self, row: dict[str, str]):
         self.rownr = int(row[ROWNR].strip())
@@ -50,6 +55,7 @@ class CsvRow:
         self.target = row[TARGET].strip().lower()
         self.filename = Path(row[FILENAME].strip())
         self.fade = int(row[FADE].strip() or 0)
+        self.hotkey = (row.get(HOTKEY) or "").lower().replace("+", " ").split()
 
         for target, aliases in TARGET_ALIASES.items():
             if self.target in aliases:
@@ -70,6 +76,15 @@ class CsvRow:
                 self.filename = self.filename.with_suffix(TARGET_SUFFIXES[self.target][0])
             if self.filename.suffix not in TARGET_SUFFIXES[self.target]:
                 error(self.rownr, f"Unrecognised file extension ({self.filename.suffix}) for target '{self.target}'")
+
+        if self.hotkey:
+            if not TARGET_SUFFIXES.get(self.target):
+                error(self.rownr, f"Shortcut cannot be used for target '{self.target}'")
+                self.hotkey = []
+            elif (self.hotkey[-1] not in ALLOWED_HOTKEYS
+                  or set(self.hotkey[:-1]) - HOTKEY_MODIFIERS):
+                error(self.rownr, f"Illegal shortcut hotkey ({self.hotkey})")
+                self.hotkey = []
 
 
 def warning(rownr: Any, msg: Any):
@@ -96,9 +111,11 @@ def get_actions(
     node_id: str,
     last_image_id: str,
     node_index: int,
-) -> tuple[list[YamlDict], str]:
+) -> tuple[list[YamlDict], str, list[YamlDict]]:
 
     actions: list[YamlDict] = []
+    shortcuts: list[YamlDict] = []
+
     if row.target in ["clear", "image"] and last_image_id:
         if row.fade > 0:
             actions.append({
@@ -121,7 +138,7 @@ def get_actions(
             })
 
     entity_id = f"{node_id} - {row.filename}"
-    if row.target in ["image", "video", "audio"]:
+    if TARGET_SUFFIXES.get(row.target):
         params: YamlDict = {"entityId": entity_id}
         if row.target in ["image", "video"]:
             params["visible"] = True
@@ -145,12 +162,23 @@ def get_actions(
             else:
                 warning(row.rownr, f"Missing {row.target}: {row.filename}")
 
+        if row.hotkey:
+            shortcuts.append({
+                "title": f"create: {row.filename} ({'+'.join(row.hotkey).upper()})",
+                "actions": [actions[0]],
+                "hotkey": {
+                    "key": row.hotkey[-1],
+                    "modifiers": row.hotkey[:-1],
+                },
+            })
+
     image_id_to_remove = entity_id if row.target == "image" else ""
-    return actions, image_id_to_remove
+    return actions, image_id_to_remove, shortcuts
 
 
 def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path, output_dir: Path) -> YamlDict:
     nodes: YamlDict = {}
+    shortcuts: list[YamlDict] = []
     start_node = ""
     last_id = ""
     last_image_id = ""
@@ -160,12 +188,13 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path, output_
         node: YamlDict = {"prompt": row.cue}
 
         if row.filename:
-            actions, image_id_to_remove = get_actions(
+            actions, image_id_to_remove, shorts = get_actions(
                 row, assets_dir, output_dir, current_id, last_image_id, node_index
             )
             node["actions"] = actions
             if image_id_to_remove:
                 last_image_id = image_id_to_remove
+            shortcuts += shorts
 
         nodes[current_id] = node
 
@@ -184,7 +213,7 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path, output_
         "nodes": nodes,
         "action_templates": {},
         "assets": {"script": {"path": str(script)}},
-        "ui": {"shortcuts": []},
+        "ui": {"shortcuts": shortcuts},
     }
 
 
