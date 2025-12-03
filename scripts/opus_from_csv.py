@@ -1,237 +1,166 @@
 import argparse
 import logging
 from pathlib import Path
-import csv
-from dataclasses import dataclass
 import yaml
 from typing import Any
-import string
+import subprocess
+
+from read_csv import read_csv, Id, CsvRow, TARGET_SUFFIXES
+from read_csv import STATISTICS, warning, error
 
 YamlDict = dict[str, Any]
 
-ROWNR = "Radnummer"
-CUE = "Stickreplik"
-TARGET = "Filtyp"
-FILENAME = "Filnamn"
-FADE = "Fade-in"
-HOTKEY = "Snabbval"
-
-TARGET_ALIASES = {
-    "clear": ["x", "-", "–", "—", "rensa"],
-    "image": ["bild", "img"],
-    "video": ["film"],
-    "audio": ["ljud"],
+START_LEVEL = {
+    "image": 1_000,
+    "video": 1_000,
 }
 
-TARGET_SUFFIXES: dict[str, list[str]] = {
-    "clear": [],
-    "image": [".jpg", ".gif", ".png"],
-    "video": [".mp4"],
-    "audio": [".mp3", ".wav"],
-}
-
-ALLOWED_HOTKEYS = set(string.ascii_lowercase + string.digits) - set("asqwert")
-HOTKEY_MODIFIERS = {"shift", "ctrl", "alt"}
-
-STATISTICS = {
-    "warnings": 0,
-    "errors": 0,
-}
-
-MAX_LEVEL = 10_000
-
-@dataclass
-class CsvRow:
-    rownr: int
-    cue: str
-    target: str
-    filename: Path
-    fade: int
-    hotkey: list[str]
-
-    def __init__(self, row: dict[str, str]):
-        self.rownr = int(row[ROWNR].strip())
-        self.cue = row[CUE].strip()
-        self.target = row[TARGET].strip().lower()
-        self.filename = Path(row[FILENAME].strip())
-        self.fade = int(row[FADE].strip() or 0)
-        self.hotkey = (row.get(HOTKEY) or "").lower().replace("+", " ").split()
-
-        for target, aliases in TARGET_ALIASES.items():
-            if self.target in aliases:
-                self.target = target
-
-        if self.target not in TARGET_ALIASES:
-            if self.target:
-                error(self.rownr, f"Invalid target: '{self.target}'")
-            elif self.filename != Path():
-                error(self.rownr, f"Empty target should not have a file ({self.filename})")
-        elif self.target == "clear":
-            if self.filename != Path():
-                error(self.rownr, f"Target '{self.target}' should not have a file ({self.filename})")
-        elif self.filename == Path():
-            warning(self.rownr, f"Missing file for target '{self.target}'")
-        else:
-            if not self.filename.suffix:
-                self.filename = self.filename.with_suffix(TARGET_SUFFIXES[self.target][0])
-            if self.filename.suffix not in TARGET_SUFFIXES[self.target]:
-                error(self.rownr, f"Unrecognised file extension ({self.filename.suffix}) for target '{self.target}'")
-
-        if self.hotkey:
-            if not TARGET_SUFFIXES.get(self.target):
-                error(self.rownr, f"Shortcut cannot be used for target '{self.target}'")
-                self.hotkey = []
-            elif (self.hotkey[-1] not in ALLOWED_HOTKEYS
-                  or set(self.hotkey[:-1]) - HOTKEY_MODIFIERS):
-                error(self.rownr, f"Illegal shortcut hotkey ({self.hotkey})")
-                self.hotkey = []
+FILE_TYPES = ["image", "audio", "video"]
 
 
-def warning(rownr: Any, msg: Any):
-    logging.warning(f"{rownr:11d} | {msg}")
-    STATISTICS["warnings"] += 1
-
-def error(rownr: Any, msg: Any):
-    logging.error(f"ERROR {rownr:5d} | {msg}")
-    STATISTICS["errors"] += 1
-
-
-def get_free_id(line: int, nodes: YamlDict) -> str:
-    for letter in string.ascii_lowercase:
-        new_id = f"{line}{letter}"
-        if new_id not in nodes:
-            return new_id
-    raise RuntimeError("Couldn't find free id")
+def get_layer(row: CsvRow, prev: CsvRow) -> int:
+    if row.cue == "[BYT]":
+        layer = 1000 + 10 * prev.id.row - 5
+    else:
+        layer = 1000 + 10 * row.id.row
+    return layer
 
 
-def get_actions(
-    row: CsvRow,
-    assets_dir: Path,
-    output_dir: Path,
-    node_id: str,
-    last_image_id: str,
-    node_index: int,
-) -> tuple[list[YamlDict], str, list[YamlDict]]:
+def get_file(target: str, filename: Path | None) -> Path | None:
+    if filename:
+        for suffix in TARGET_SUFFIXES[target]:
+            if filename.with_suffix(suffix).is_file():
+                return filename.with_suffix(suffix)
+    return None
 
-    actions: list[YamlDict] = []
-    shortcuts: list[YamlDict] = []
 
-    if row.target in ["clear", "image"] and last_image_id:
-        if row.fade > 0:
-            actions.append({
-                "target": "image",
+def get_entity_id(row: CsvRow) -> str:
+    if row.filename and row.filename.name.startswith(str(row.id)):
+        return f"{row.filename.name} - {row.target}"
+    else:
+        return f"{row.id} - {row.target}"
+
+
+
+def convert_opus(csv_rows: list[CsvRow], script: Path, output_dir: Path) -> YamlDict:
+    nodes: dict[Id, YamlDict] = {}
+
+    # Creating entities
+    for n, row in enumerate(csv_rows):
+        assert row.id not in nodes
+        nodes[row.id] = {
+            "prompt": row.cue,
+            "actions": [],
+        }
+        if row.target not in FILE_TYPES:
+            continue
+
+        filename = get_file(row.target, row.filename)
+        if not filename:
+            warning(row.id, f"Missing {row.target} file: {row.filename}")
+            continue
+
+        params: YamlDict = {"entityId": get_entity_id(row)}
+        if row.target in ["image", "video"]:
+            params["visible"] = True
+            params["layer"] = get_layer(row, csv_rows[n-1])
+            if row.loop is not None:
+                params["looping"] = row.loop
+                params["seamless"] = True
+
+        if row.target == "video":
+            if filename.suffix == ".webm":
+                cmd = ["ffprobe", "-loglevel", "error", "-show_entries", "stream=codec_name",
+                       "-of", "default=noprint_wrappers=1:nokey=1", str(filename)]
+                codecs = subprocess.run(cmd, capture_output=True, encoding="utf-8").stdout
+                codecs = ", ".join(codecs.split())
+                warning(row.id, f"Codecs = {codecs}")
+                params["mimeCodec"] = f'video/webm; codecs="{codecs}"'
+        elif row.target == "image":
+            if row.fadein:
+                params["fadeIn"] = {"from": 0, "to": 1, "time": row.fadein}
+        elif row.target == "audio":
+            pass
+
+        nodes[row.id]["actions"].append({
+            "target": row.target,
+            "cmd": "create",
+            "assets": [{"path": str(filename.relative_to(output_dir))}],
+            "params": params,
+        })
+
+        if row.filename2:
+            filename2 = get_file(row.target, row.filename2)
+            if not filename2:
+                warning(row.id, f"Missing {row.target}: {row.filename2}")
+            else:
+                nodes[row.id]["actions"].append({
+                    "target": row.target,
+                    "cmd": "set_next_file",
+                    "assets": [{"path": str(filename2.relative_to(output_dir))}],
+                    "params": {"entityId": get_entity_id(row)},
+                })
+
+    # Destroying entities
+    for row in csv_rows:
+        if not row.kill:
+            continue
+        if row.kill not in nodes:
+            error(row.id, f"Missing kill row: {row.kill}")
+            continue
+        if row.target not in FILE_TYPES:
+            error(row.id, f"Cannot kill target {row.target!r} (kill row {row.kill})")
+            continue
+        if row.target == "image" and row.fadeout:
+            nodes[row.kill]["actions"].append({
+                "target": row.target,
                 "cmd": "fade",
                 "params": {
-                    "entityId": last_image_id,
+                    "entityId": get_entity_id(row),
                     "target": 0,
-                    "time": row.fade,
+                    "time": row.fadeout,
                     "stopOnDone": True,
                 },
             })
         else:
-            actions.append({
-                "target": "image",
+            nodes[row.kill]["actions"].append({
+                "target": row.target,
                 "cmd": "destroy",
                 "params": {
-                    "entityId": last_image_id,
+                    "entityId": get_entity_id(row),
                 },
             })
 
-    entity_id = f"{node_id} - {row.filename}"
-    if TARGET_SUFFIXES.get(row.target):
-        params: YamlDict = {"entityId": entity_id}
-        if row.target in ["image", "video"]:
-            params["visible"] = True
-            params["layer"] = MAX_LEVEL-node_index-1 if row.target == "image" else MAX_LEVEL
-            if row.fade and not actions:
-                # If we already have an action, then we know it's a previous image
-                # that will be removed, so we don't have to fade this one in.
-                params["fadeIn"] = {"from": 0, "to": 1, "time": row.fade}
-        actions.insert(0, {
-            "target": row.target,
-            "cmd": "create",
-            "assets": [{"path": str(assets_dir / row.filename)}],
-            "params": params,
-        })
-        if not (output_dir / assets_dir / row.filename).is_file():
-            for suffix in TARGET_SUFFIXES[row.target]:
-                newfile = row.filename.with_suffix(suffix)
-                if (output_dir / assets_dir / newfile).is_file():
-                    row.filename = newfile
-                    break
-            else:
-                warning(row.rownr, f"Missing {row.target}: {row.filename}")
-
-        if row.hotkey:
-            shortcuts.append({
-                "title": f"create: {row.filename} ({'+'.join(row.hotkey).upper()})",
-                "actions": [actions[0]],
-                "hotkey": {
-                    "key": row.hotkey[-1],
-                    "modifiers": row.hotkey[:-1],
-                },
-            })
-
-    image_id_to_remove = entity_id if row.target == "image" else ""
-    return actions, image_id_to_remove, shortcuts
-
-
-def convert_opus(csv_rows: list[CsvRow], script: Path, assets_dir: Path, output_dir: Path) -> YamlDict:
-    nodes: YamlDict = {}
+    # Hotkeys
     shortcuts: list[YamlDict] = []
-    start_node = ""
-    last_id = ""
-    last_image_id = ""
+    # for row in csv_rows:
+    #     if row.hotkey:
+    #         shortcuts.append({
+    #             "title": f"create: {row.filename} ({'+'.join(row.hotkey).upper()})",
+    #             "actions": [actions[0]],
+    #             "hotkey": {
+    #                 "key": row.hotkey[-1],
+    #                 "modifiers": row.hotkey[:-1],
+    #             },
+    #         })
 
-    for node_index, row in enumerate(csv_rows):
-        current_id = get_free_id(row.rownr, nodes)
-        node: YamlDict = {"prompt": row.cue}
-
-        if row.filename:
-            actions, image_id_to_remove, shorts = get_actions(
-                row, assets_dir, output_dir, current_id, last_image_id, node_index
-            )
-            node["actions"] = actions
-            if image_id_to_remove:
-                last_image_id = image_id_to_remove
-            shortcuts += shorts
-
-        nodes[current_id] = node
-
-        if last_id:
-            nodes[last_id]["next"] = current_id
-        else:
-            start_node = current_id
-        last_id = current_id
-
-    nodes[last_id]["next"] = start_node
-    if not start_node:
-        error(0, "Start node was never set. Does your csv file have any rows?")
+    node_ids = sorted(nodes)
+    start_id = node_ids[0]
+    for id, next_id in zip(node_ids, node_ids[1:] + [start_id]):
+        nodes[id]["next"] = str(next_id)
 
     return {
-        "startNode": start_node,
-        "nodes": nodes,
+        "startNode": str(start_id),
+        "nodes": {str(k): v for k, v in nodes.items()},
         "action_templates": {},
-        "assets": {"script": {"path": str(script)}},
+        "assets": {"script": {"path": str(script.relative_to(output_dir))}},
         "ui": {"shortcuts": shortcuts},
     }
 
 
 def main(args: argparse.Namespace):
-    csv_rows: list[CsvRow] = []
-    with open(args.input, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            try:
-                csv_rows.append(CsvRow(row))
-            except ValueError as err:
-                error(row.get(ROWNR), f"{err.__class__.__name__}: {err}")
-
-    output_dir = args.output.parent
-    script = args.script.relative_to(output_dir)
-    assets_dir = args.assets_dir.relative_to(output_dir)
-    opus = convert_opus(csv_rows, script, assets_dir, output_dir)
-
+    rows = read_csv(args.input, args.assets_dir)
+    opus = convert_opus(rows, args.script, args.output.parent)
     with open(args.output, "w") as f:
         yaml.safe_dump(opus, f, sort_keys=False, allow_unicode=True)
 
@@ -262,7 +191,6 @@ if __name__ == "__main__":
         help="Silent mode, only show errors",
     )
     args = parser.parse_args()
-
     logging.basicConfig(format="{message}", style="{", level=args.loglevel)
     main(args)
     print(f"Finished    | {STATISTICS['errors']} errors, {STATISTICS['warnings']} warnings")
