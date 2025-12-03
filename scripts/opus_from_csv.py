@@ -1,196 +1,196 @@
 import argparse
+import logging
 from pathlib import Path
-import csv
-from dataclasses import dataclass
 import yaml
-from typing import Any, Optional
-import string
-import os.path
+from typing import Any
+import subprocess
+
+from read_csv import read_csv, Id, CsvRow, TARGET_SUFFIXES
+from read_csv import STATISTICS, warning, error
+
+YamlDict = dict[str, Any]
+
+START_LEVEL = {
+    "image": 1_000,
+    "video": 1_000,
+}
+
+FILE_TYPES = ["image", "audio", "video"]
 
 
-@dataclass
-class CsvRow:
-    line_number: int
-    cue: str
-    filename: Optional[str]
-    fade: Optional[int]
-
-
-def get_free_id(line_number: int, nodes: dict):
-    new_id = str(line_number)
-    alphabet = list(string.ascii_lowercase)
-    while new_id in nodes:
-        new_id = str(line_number) + alphabet.pop(0)
-    return new_id
-
-
-def get_actions(
-    filename: str,
-    fade: Optional[int],
-    asset_dirname: str,
-    node_id: str,
-    last_image_id: str,
-    node_index: int,
-):
-    extension = filename.split(".")[-1]
-    if extension in ["png"]:
-        target = "image"
-    elif extension in ["mp4"]:
-        target = "video"
-    elif extension in ["wav", "mp3"]:
-        target = "audio"
+def get_layer(row: CsvRow, prev: CsvRow) -> int:
+    if row.cue == "[BYT]":
+        layer = 1000 + 10 * prev.id.row - 5
     else:
-        raise RuntimeError(f"Unknown filetype '{extension}'")
+        layer = 1000 + 10 * row.id.row
+    return layer
 
-    if target == "image" and last_image_id is not None:
-        if fade is not None:
-            remove_action = {
-                "target": "image",
+
+def get_file(target: str, filename: Path | None) -> Path | None:
+    if filename:
+        for suffix in TARGET_SUFFIXES[target]:
+            if filename.with_suffix(suffix).is_file():
+                return filename.with_suffix(suffix)
+    return None
+
+
+def get_entity_id(row: CsvRow) -> str:
+    if row.filename and row.filename.name.startswith(str(row.id)):
+        return f"{row.filename.name} - {row.target}"
+    else:
+        return f"{row.id} - {row.target}"
+
+
+
+def convert_opus(csv_rows: list[CsvRow], script: Path, output_dir: Path) -> YamlDict:
+    nodes: dict[Id, YamlDict] = {}
+
+    # Creating entities
+    for n, row in enumerate(csv_rows):
+        assert row.id not in nodes
+        nodes[row.id] = {
+            "prompt": row.cue,
+            "actions": [],
+        }
+        if row.target not in FILE_TYPES:
+            continue
+
+        filename = get_file(row.target, row.filename)
+        if not filename:
+            warning(row.id, f"Missing {row.target} file: {row.filename}")
+            continue
+
+        params: YamlDict = {"entityId": get_entity_id(row)}
+        if row.target in ["image", "video"]:
+            params["visible"] = True
+            params["layer"] = get_layer(row, csv_rows[n-1])
+            if row.loop is not None:
+                params["looping"] = row.loop
+                params["seamless"] = True
+
+        if row.target == "video":
+            if filename.suffix == ".webm":
+                cmd = ["ffprobe", "-loglevel", "error", "-show_entries", "stream=codec_name",
+                       "-of", "default=noprint_wrappers=1:nokey=1", str(filename)]
+                codecs = subprocess.run(cmd, capture_output=True, encoding="utf-8").stdout
+                codecs = ", ".join(codecs.split())
+                warning(row.id, f"Codecs = {codecs}")
+                params["mimeCodec"] = f'video/webm; codecs="{codecs}"'
+        elif row.target == "image":
+            if row.fadein:
+                params["fadeIn"] = {"from": 0, "to": 1, "time": row.fadein}
+        elif row.target == "audio":
+            pass
+
+        nodes[row.id]["actions"].append({
+            "target": row.target,
+            "cmd": "create",
+            "assets": [{"path": str(filename.relative_to(output_dir))}],
+            "params": params,
+        })
+
+        if row.filename2:
+            filename2 = get_file(row.target, row.filename2)
+            if not filename2:
+                warning(row.id, f"Missing {row.target}: {row.filename2}")
+            else:
+                nodes[row.id]["actions"].append({
+                    "target": row.target,
+                    "cmd": "set_next_file",
+                    "assets": [{"path": str(filename2.relative_to(output_dir))}],
+                    "params": {"entityId": get_entity_id(row)},
+                })
+
+    # Destroying entities
+    for row in csv_rows:
+        if not row.kill:
+            continue
+        if row.kill not in nodes:
+            error(row.id, f"Missing kill row: {row.kill}")
+            continue
+        if row.target not in FILE_TYPES:
+            error(row.id, f"Cannot kill target {row.target!r} (kill row {row.kill})")
+            continue
+        if row.target == "image" and row.fadeout:
+            nodes[row.kill]["actions"].append({
+                "target": row.target,
                 "cmd": "fade",
                 "params": {
-                    "entityId": last_image_id,
+                    "entityId": get_entity_id(row),
                     "target": 0,
-                    "time": fade,
+                    "time": row.fadeout,
                     "stopOnDone": True,
                 },
-            }
+            })
         else:
-            remove_action = {
-                "target": "image",
+            nodes[row.kill]["actions"].append({
+                "target": row.target,
                 "cmd": "destroy",
                 "params": {
-                    "entityId": last_image_id,
+                    "entityId": get_entity_id(row),
                 },
-            }
-    else:
-        remove_action = None
+            })
 
-    entity_id = f"{node_id}_{filename}"
-    if target == "image":
-        params = {
-            "entityId": entity_id,
-            "visible": True,
-            "layer": 9999 - node_index,
-        }
-        if (
-            fade is not None and remove_action is None
-        ):  # If we have a previous image we fade that out instead
-            params["fadeIn"] = {"from": 0, "to": 1, "time": fade}
-    elif target == "video":
-        params = {"entityId": entity_id, "visible": True, "layer": 10000}
-        if fade is not None:
-            params["fadeIn"] = {"from": 0, "to": 1, "time": fade}
-    elif target == "audio":
-        params = {"entityId": entity_id}
-    else:
-        raise RuntimeError(f"Somehow unknown target '{target}'")
+    # Hotkeys
+    shortcuts: list[YamlDict] = []
+    # for row in csv_rows:
+    #     if row.hotkey:
+    #         shortcuts.append({
+    #             "title": f"create: {row.filename} ({'+'.join(row.hotkey).upper()})",
+    #             "actions": [actions[0]],
+    #             "hotkey": {
+    #                 "key": row.hotkey[-1],
+    #                 "modifiers": row.hotkey[:-1],
+    #             },
+    #         })
 
-    create_action = {
-        "target": target,
-        "cmd": "create",
-        "assets": [{"path": os.path.join(asset_dirname, filename)}],
-        "params": params,
-    }
-
-    image_id_to_remove = entity_id if target == "image" else None
-
-    if remove_action is not None:
-        return [create_action, remove_action], image_id_to_remove
-    else:
-        return [create_action], image_id_to_remove
-
-
-def convert_opus(
-    csv_rows: list[CsvRow], script_filename: str, asset_dirname: str
-) -> dict[str, Any]:
-    nodes = {}
-    start_node = None
-    last_id = None
-    last_image_id = None
-
-    for i, row in enumerate(csv_rows):
-        current_id = get_free_id(row.line_number, nodes)
-
-        node = {"prompt": row.cue}
-
-        if row.filename is not None:
-            actions, image_id_to_remove = get_actions(
-                row.filename, row.fade, asset_dirname, current_id, last_image_id, i
-            )
-            node["actions"] = actions
-            if image_id_to_remove is not None:
-                last_image_id = image_id_to_remove
-
-        nodes[current_id] = node
-
-        if last_id is not None:
-            nodes[last_id]["next"] = current_id
-        else:
-            start_node = current_id
-        last_id = current_id
-    nodes[last_id]["next"] = start_node
-
-    if start_node is None:
-        raise RuntimeError(
-            "Start node was never set. Does your csv file have any rows?"
-        )
+    node_ids = sorted(nodes)
+    start_id = node_ids[0]
+    for id, next_id in zip(node_ids, node_ids[1:] + [start_id]):
+        nodes[id]["next"] = str(next_id)
 
     return {
-        "startNode": start_node,
-        "nodes": nodes,
+        "startNode": str(start_id),
+        "nodes": {str(k): v for k, v in nodes.items()},
         "action_templates": {},
-        "assets": {"script": {"path": script_filename}},
-        "ui": {"shortcuts": []},
+        "assets": {"script": {"path": str(script.relative_to(output_dir))}},
+        "ui": {"shortcuts": shortcuts},
     }
 
 
-def main(input_file: Path, output_file: Path, script_filename: str, asset_dirname: str):
-    csv_rows: list[CsvRow] = []
-    with open(input_file, "r") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            csv_rows.append(
-                CsvRow(
-                    line_number=int(row["Radnummer"]),
-                    cue=row["Stickreplik"],
-                    filename=row["Filnamn"] or None,
-                    fade=(
-                        int(row["Fade-in-tid i sekunder"])
-                        if row["Fade-in-tid i sekunder"]
-                        else None
-                    ),
-                )
-            )
-
-    opus = convert_opus(csv_rows, script_filename, asset_dirname)
-
-    with open(output_file, "w") as f:
+def main(args: argparse.Namespace):
+    rows = read_csv(args.input, args.assets_dir)
+    opus = convert_opus(rows, args.script, args.output.parent)
+    with open(args.output, "w") as f:
         yaml.safe_dump(opus, f, sort_keys=False, allow_unicode=True)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Script to convert an exported Google sheet to YAML opus format"
+        description="Script to convert an exported Google sheet to YAML opus format",
     )
     parser.add_argument(
-        "input_file",
+        "--input", "-i", required=True, type=Path,
         help="CSV file exported from Google Sheets (File -> Download -> Comma Separated Values)",
     )
-    parser.add_argument("output_file", help="Path to output file")
     parser.add_argument(
-        "--script-filename",
-        default="Vintergatan_20250202.pdf",
-        help="The script (manus) PDF file. Assumed to be next to opus.",
+        "--output", "-o", required=True, type=Path,
+        help="Path to output YAML file",
     )
     parser.add_argument(
-        "--asset-dirname",
-        default="Till föreställningen",
-        help="Directory name for assets. Assumed to be next to opus.",
+        "--script", "-s", required=True, type=Path,
+        help="The script (manus) PDF file, should be in the same directory as the output YAML file",
+    )
+    parser.add_argument(
+        "--assets-dir", "-d", required=True, type=Path,
+        help="Directory name for assets, should be in the same directory as the output YAML file",
+    )
+    parser.add_argument(
+        '--quiet', '-q', action="store_const", dest="loglevel",
+        const=logging.ERROR, default=logging.INFO,
+        help="Silent mode, only show errors",
     )
     args = parser.parse_args()
-    main(
-        Path(args.input_file),
-        Path(args.output_file),
-        args.script_filename,
-        args.asset_dirname,
-    )
+    logging.basicConfig(format="{message}", style="{", level=args.loglevel)
+    main(args)
+    print(f"Finished    | {STATISTICS['errors']} errors, {STATISTICS['warnings']} warnings")
