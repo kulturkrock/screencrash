@@ -9,6 +9,9 @@ dev_ui:
 dev_media:
 	make -C "components/media" dev
 
+dev_hosted_media:
+    make -C "components/hosted_media" dev
+
 dev_inventory:
 	make -C "components/inventory" dev
 
