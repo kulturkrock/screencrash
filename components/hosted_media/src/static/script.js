@@ -1,8 +1,10 @@
 
-async function getState() {
-    const response = await fetch("../api/state");
-    const state = await response.json();
-    document.getElementById("state").textContent = "Senast skapad: " + state.last_created;
+async function subscribe() {
+    const eventSource = new EventSource("../api/subscribe");
+    eventSource.addEventListener("message", event => {
+        const message = JSON.parse(event.data);
+        document.getElementById("state").textContent = "Senast skapad: " + message.last_created;
+    })
 }
 
-getState();
+subscribe();
