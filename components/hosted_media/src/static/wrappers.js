@@ -15,6 +15,7 @@ function create(message, setupFunction) {
     message.height,
     message.usePercentage
   );
+  _setLayer(wrapper, message.layer);
   setupFunction(wrapper, message);
 
   document.body.appendChild(wrapper);
@@ -77,4 +78,20 @@ function setViewport(entityId, x, y, width, height, usePercentage) {
   _setViewport(wrapper, x, y, width, height, usePercentage);
 }
 
-export default { create, destroy, setVisible, setOpacity, setViewport };
+function _setLayer(wrapper, layer) {
+  wrapper.style.zIndex = layer;
+}
+
+function setLayer(entityId, layer) {
+  const wrapper = document.getElementById(entityId);
+  _setLayer(wrapper, layer);
+}
+
+export default {
+  create,
+  destroy,
+  setVisible,
+  setOpacity,
+  setViewport,
+  setLayer,
+};

@@ -79,6 +79,8 @@ class EntityManager:
                 message["height"],
                 message["usePercentage"],
             )
+        elif cmd == "layer":
+            result = self.set_layer(entity_id, message["layer"])
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -156,6 +158,12 @@ class EntityManager:
         entity.width = width
         entity.height = height
         entity.use_percentage = use_percentage
+
+    def set_layer(self, entity_id: str, layer: int) -> None:
+        self.broadcast_message(
+            {"command": "setLayer", "entityId": entity_id, "layer": layer}
+        )
+        self.entities[entity_id].layer = layer
 
     def get_component_id(self) -> str:
         return self.component_id

@@ -22,6 +22,8 @@ function subscribe() {
         message.height,
         message.usePercentage
       );
+    } else if (message.command === "setLayer") {
+      wrappers.setLayer(message.entityId, message.layer);
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`
