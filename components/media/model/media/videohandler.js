@@ -161,7 +161,6 @@ module.exports = class VideoHandler extends VisualHandler {
     }
 
     init(createMessage, resourcesPath) {
-        super.init(createMessage, resourcesPath);
         this.resourcesPath = resourcesPath;
 
         const filePath = `${this.resourcesPath}/${createMessage.asset}`;
@@ -202,6 +201,7 @@ module.exports = class VideoHandler extends VisualHandler {
         if (createMessage.displayName) {
             this.name = createMessage.displayName; // Override name
         }
+        super.init(createMessage, resourcesPath);
     }
 
     destroy() {
