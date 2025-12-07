@@ -24,6 +24,13 @@ function subscribe() {
       );
     } else if (message.command === "setLayer") {
       wrappers.setLayer(message.entityId, message.layer);
+    } else if (message.command === "fade") {
+      wrappers.fade(
+        message.entityId,
+        message.fadeTo,
+        message.time,
+        message.destroyOnEnd
+      );
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`

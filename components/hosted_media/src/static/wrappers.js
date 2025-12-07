@@ -87,6 +87,14 @@ function setLayer(entityId, layer) {
   _setLayer(wrapper, layer);
 }
 
+function fade(entityId, fadeTo, time, destroyOnEnd) {
+  if (destroyOnEnd) {
+    destroy(entityId);
+  } else {
+    setOpacity(entityId, fadeTo);
+  }
+}
+
 export default {
   create,
   destroy,
@@ -94,4 +102,5 @@ export default {
   setOpacity,
   setViewport,
   setLayer,
+  fade,
 };

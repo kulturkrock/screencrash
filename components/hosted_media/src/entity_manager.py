@@ -81,6 +81,10 @@ class EntityManager:
             )
         elif cmd == "layer":
             result = self.set_layer(entity_id, message["layer"])
+        elif cmd == "fade":
+            result = self.fade(
+                entity_id, message["target"], message["time"], message["stopOnDone"]
+            )
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -164,6 +168,27 @@ class EntityManager:
             {"command": "setLayer", "entityId": entity_id, "layer": layer}
         )
         self.entities[entity_id].layer = layer
+
+    def fade(
+        self,
+        entity_id: str,
+        fade_to: float,
+        time: float,
+        destroy_on_end: bool,
+    ) -> None:
+        self.broadcast_message(
+            {
+                "command": "fade",
+                "entityId": entity_id,
+                "to": fade_to,
+                "time": time,
+                "destroyOnEnd": destroy_on_end,
+            }
+        )
+        if destroy_on_end:
+            del self.entities[entity_id]
+        else:
+            self.entities[entity_id].opacity = fade_to
 
     def get_component_id(self) -> str:
         return self.component_id
