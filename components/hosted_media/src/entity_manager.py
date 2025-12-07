@@ -64,6 +64,10 @@ class EntityManager:
         entity_id = message.get("entityId")
         if cmd == "create":
             result = self.create(type, entity_id, message)
+        elif cmd == "show":
+            result = self.set_visible(entity_id, True)
+        elif cmd == "hide":
+            result = self.set_visible(entity_id, False)
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -102,6 +106,12 @@ class EntityManager:
     def destroy(self, entity_id: str) -> None:
         self.broadcast_message({"command": "destroy", "entityId": entity_id})
         del self.entities[entity_id]
+
+    def set_visible(self, entity_id: str, visible: bool) -> None:
+        self.broadcast_message(
+            {"command": "setVisible", "entityId": entity_id, "visible": visible}
+        )
+        self.entities[entity_id].visible = visible
 
     def get_component_id(self) -> str:
         return self.component_id
