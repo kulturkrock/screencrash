@@ -29,12 +29,14 @@ class RequestHandler:
     async def subscribe(self, request):
         async with sse_response(request) as resp:
             self.subscribe_responses.append(resp)
+            for message in self.entity_manager.get_all_entity_create_messages():
+                await resp.send(json.dumps(message))
             await resp.wait()
             self.subscribe_responses.remove(resp)
         return resp
 
 
-def get_app(entity_manager: EntityManager):
+def get_app(entity_manager: EntityManager, asset_dir: Path):
 
     request_handler = RequestHandler(entity_manager)
     app = web.Application()
@@ -42,6 +44,7 @@ def get_app(entity_manager: EntityManager):
         [
             web.get("/", request_handler.redirect_to_static),
             web.static("/static", Path(__file__).parent / "static"),
+            web.static("/assets", asset_dir, show_index=True),
             web.get("/api/subscribe", request_handler.subscribe),
             web.get("/api/state", request_handler.get_state),
         ]
