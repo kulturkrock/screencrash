@@ -13,6 +13,15 @@ function subscribe() {
       wrappers.setVisible(message.entityId, message.visible);
     } else if (message.command === "setOpacity") {
       wrappers.setOpacity(message.entityId, message.opacity);
+    } else if (message.command === "setViewport") {
+      wrappers.setViewport(
+        message.entityId,
+        message.x,
+        message.y,
+        message.width,
+        message.height,
+        message.usePercentage
+      );
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`

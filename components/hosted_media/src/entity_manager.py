@@ -37,7 +37,7 @@ class Image:
             "y": self.y,
             "width": self.width,
             "height": self.height,
-            "use_percentage": self.use_percentage,
+            "usePercentage": self.use_percentage,
             "opacity": self.opacity,
             "layer": self.layer,
             "visible": self.visible,
@@ -70,6 +70,15 @@ class EntityManager:
             result = self.set_visible(entity_id, False)
         elif cmd == "opacity":
             result = self.set_opacity(entity_id, message["opacity"])
+        elif cmd == "viewport":
+            result = self.set_viewport(
+                entity_id,
+                message["x"],
+                message["y"],
+                message["width"],
+                message["height"],
+                message["usePercentage"],
+            )
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -120,6 +129,33 @@ class EntityManager:
             {"command": "setOpacity", "entityId": entity_id, "opacity": opacity}
         )
         self.entities[entity_id].opacity = opacity
+
+    def set_viewport(
+        self,
+        entity_id: str,
+        x: int,
+        y: int,
+        width: int,
+        height: int,
+        use_percentage: bool,
+    ) -> None:
+        self.broadcast_message(
+            {
+                "command": "setViewport",
+                "entityId": entity_id,
+                "x": x,
+                "y": y,
+                "width": width,
+                "height": height,
+                "usePercentage": use_percentage,
+            }
+        )
+        entity = self.entities[entity_id]
+        entity.x = x
+        entity.y = y
+        entity.width = width
+        entity.height = height
+        entity.use_percentage = use_percentage
 
     def get_component_id(self) -> str:
         return self.component_id
