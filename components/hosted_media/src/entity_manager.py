@@ -68,6 +68,8 @@ class EntityManager:
             result = self.set_visible(entity_id, True)
         elif cmd == "hide":
             result = self.set_visible(entity_id, False)
+        elif cmd == "opacity":
+            result = self.set_opacity(entity_id, message["opacity"])
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -112,6 +114,12 @@ class EntityManager:
             {"command": "setVisible", "entityId": entity_id, "visible": visible}
         )
         self.entities[entity_id].visible = visible
+
+    def set_opacity(self, entity_id: str, opacity: float) -> None:
+        self.broadcast_message(
+            {"command": "setOpacity", "entityId": entity_id, "opacity": opacity}
+        )
+        self.entities[entity_id].opacity = opacity
 
     def get_component_id(self) -> str:
         return self.component_id

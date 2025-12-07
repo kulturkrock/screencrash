@@ -1,3 +1,5 @@
+import domUtils from "./domUtils.js";
+
 function create(message, setupFunction) {
   const wrapper = document.createElement("div");
   wrapper.id = message.entityId;
@@ -6,6 +8,7 @@ function create(message, setupFunction) {
   } else {
     wrapper.className = "media-wrapper hidden";
   }
+  wrapper.style.opacity = message.opacity;
   setupFunction(wrapper, message);
 
   document.body.appendChild(wrapper);
@@ -25,4 +28,9 @@ function setVisible(entityId, visible) {
   }
 }
 
-export default { create, destroy, setVisible };
+function setOpacity(entityId, opacity) {
+  const wrapper = document.getElementById(entityId);
+  wrapper.style.opacity = opacity;
+}
+
+export default { create, destroy, setVisible, setOpacity };

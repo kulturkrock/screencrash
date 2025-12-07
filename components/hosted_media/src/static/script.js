@@ -11,6 +11,8 @@ function subscribe() {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "setVisible") {
       wrappers.setVisible(message.entityId, message.visible);
+    } else if (message.command === "setOpacity") {
+      wrappers.setOpacity(message.entityId, message.opacity);
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`
