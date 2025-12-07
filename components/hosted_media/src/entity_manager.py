@@ -70,8 +70,8 @@ class EntityManager:
 
     def create(self, type: str, entity_id: str, message: dict[str, Any]) -> None:
         if entity_id in self.entities:
-            # TODO: Send destroy
-            del self.entities[entity_id]
+            print(f"'{entity_id}' already exists, destroying")
+            self.destroy(entity_id)
         if type == "image":
             new_entity = Image(
                 entity_id=entity_id,
@@ -98,6 +98,10 @@ class EntityManager:
             raise RuntimeError(f"Unsupported type {type}")
         self.entities[entity_id] = new_entity
         self.broadcast_create_message(new_entity, fade)
+
+    def destroy(self, entity_id: str) -> None:
+        self.broadcast_message({"command": "destroy", "entityId": entity_id})
+        del self.entities[entity_id]
 
     def get_component_id(self) -> str:
         return self.component_id
