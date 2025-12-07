@@ -32,14 +32,14 @@ class Core:
 
     async def main(self):
         """The main loop."""
-        opus_file = os.environ.get("OPUS", "real_opus.yaml")
+        opus_file = os.environ.get("OPUS", str(Path(__file__).parent.parent.parent / "resources" / "real_opus.yaml"))
         sync_assets = os.environ.get("SCREENCRASH_SYNC_ASSETS", "false") == "true"
         exit_on_validation_failure = (
             os.environ.get("SCREENCRASH_EXIT_ON_VALIDATION_FAILURE", "true") == "true"
         )
         print("Loading opus...")
         self._opus = await load_opus(
-            Path(__file__).parent.parent.parent / "resources" / opus_file,
+            Path(opus_file),
             read_asset_data=sync_assets,
             exit_on_validation_failure=exit_on_validation_failure,
         )

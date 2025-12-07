@@ -67,6 +67,8 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, output_dir: Path) -> Yaml
             if row.loop is not None:
                 params["looping"] = row.loop
                 params["seamless"] = True
+            if row.fadein:
+                params["fadeIn"] = {"from": 0, "to": 1, "time": row.fadein}
 
         if row.target == "video":
             if filename.suffix == ".webm":
@@ -76,9 +78,6 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, output_dir: Path) -> Yaml
                 codecs = ", ".join(codecs.split())
                 warning(row.id, f"Codecs = {codecs}")
                 params["mimeCodec"] = f'video/webm; codecs="{codecs}"'
-        elif row.target == "image":
-            if row.fadein:
-                params["fadeIn"] = {"from": 0, "to": 1, "time": row.fadein}
         elif row.target == "audio":
             pass
 
@@ -111,7 +110,7 @@ def convert_opus(csv_rows: list[CsvRow], script: Path, output_dir: Path) -> Yaml
         if row.target not in FILE_TYPES:
             error(row.id, f"Cannot kill target {row.target!r} (kill row {row.kill})")
             continue
-        if row.target == "image" and row.fadeout:
+        if row.target in ["image", "video"] and row.fadeout:
             nodes[row.kill]["actions"].append({
                 "target": row.target,
                 "cmd": "fade",
