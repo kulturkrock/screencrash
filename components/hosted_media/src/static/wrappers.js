@@ -6,7 +6,7 @@ function create(message, setupFunction) {
 
   wrapper.className = "media-wrapper hidden";
   _setVisible(wrapper, message.visible);
-  _setOpacity(wrapper, message.opacity);
+  _setOpacity(wrapper, message.opacity, message.fadeIn);
   _setViewport(
     wrapper,
     message.x,
@@ -39,8 +39,22 @@ function setVisible(entityId, visible) {
   _setVisible(wrapper, visible);
 }
 
-function _setOpacity(wrapper, opacity) {
-  wrapper.style.opacity = opacity;
+function _setOpacity(wrapper, opacity, fadeIn) {
+  if (fadeIn !== undefined) {
+    // First, set initial opacity
+    wrapper.style.opacity = fadeIn.from;
+    // Then schedule setting the transition and target opacity 1ms in the future
+    setTimeout(() => {
+      wrapper.style.transition = `opacity ${fadeIn.time}s linear`;
+      wrapper.style.opacity = fadeIn.to;
+      // Finally, schedule cleaning up the transition when it's done, so it doesn't affect future opacity changes
+      setTimeout(() => {
+        wrapper.style.transition = "";
+      }, fadeIn.time * 1000);
+    }, 1);
+  } else {
+    wrapper.style.opacity = opacity;
+  }
 }
 
 function setOpacity(entityId, opacity) {
@@ -88,10 +102,14 @@ function setLayer(entityId, layer) {
 }
 
 function fade(entityId, fadeTo, time, destroyOnEnd) {
+  const wrapper = document.getElementById(entityId);
+  wrapper.style.transition = `opacity ${time}s linear`;
+  wrapper.style.opacity = fadeTo;
   if (destroyOnEnd) {
-    destroy(entityId);
+    setTimeout(() => destroy(entityId), time * 1000);
   } else {
-    setOpacity(entityId, fadeTo);
+    // Clean up the transition so it doesn't affect future opacity changes
+    setTimeout(() => (wrapper.style.transition = ""), time * 1000);
   }
 }
 

@@ -27,7 +27,7 @@ function subscribe() {
     } else if (message.command === "fade") {
       wrappers.fade(
         message.entityId,
-        message.fadeTo,
+        message.to,
         message.time,
         message.destroyOnEnd
       );
