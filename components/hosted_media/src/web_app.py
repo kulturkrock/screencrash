@@ -11,7 +11,7 @@ class RequestHandler:
 
     def __init__(self, entity_manager: EntityManager):
         self.entity_manager = entity_manager
-        self.entity_manager.add_message_listener(self.send_to_subscribers)
+        self.entity_manager.add_webpage_message_listener(self.send_to_subscribers)
         self.subscribe_responses = []
 
     async def redirect_to_static(self, request):

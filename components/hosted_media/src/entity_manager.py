@@ -50,12 +50,26 @@ class Image:
             }
         return message
 
+    def get_state_for_core(self) -> dict[str, Any]:
+        return {
+            "effectType": "image",
+            "name": self.display_name,
+            "visible": self.visible,
+            "opacity": self.opacity,
+            "viewport_x": self.x,
+            "viewport_y": self.y,
+            "viewport_width": self.width,
+            "viewport_height": self.height,
+            "layer": self.layer,
+        }
+
 
 class EntityManager:
 
     def __init__(self, component_id: str):
         self.component_id = component_id
-        self.message_listeners: list[Callable[[dict[str, Any]]]] = []
+        self.webpage_message_listeners: list[Callable[[dict[str, Any]]]] = []
+        self.core_message_listeners: list[Callable[[dict[str, Any]]]] = []
         self.entities: dict[str, Image] = {}
 
     def handle_message(self, message):
@@ -119,22 +133,31 @@ class EntityManager:
             raise RuntimeError(f"Unsupported type {type}")
         self.entities[entity_id] = new_entity
         self.broadcast_create_message(new_entity, fade)
+        self.broadcast_core_message(
+            {"messageType": "effect-added", "entityId": entity_id}
+            | new_entity.get_state_for_core()
+        )
 
     def destroy(self, entity_id: str) -> None:
-        self.broadcast_message({"command": "destroy", "entityId": entity_id})
+        self.broadcast_webpage_message({"command": "destroy", "entityId": entity_id})
+        self.broadcast_core_message(
+            {"messageType": "effect-removed", "entityId": entity_id}
+        )
         del self.entities[entity_id]
 
     def set_visible(self, entity_id: str, visible: bool) -> None:
-        self.broadcast_message(
+        self.broadcast_webpage_message(
             {"command": "setVisible", "entityId": entity_id, "visible": visible}
         )
         self.entities[entity_id].visible = visible
+        self.broadcast_change_message(self.entities[entity_id])
 
     def set_opacity(self, entity_id: str, opacity: float) -> None:
-        self.broadcast_message(
+        self.broadcast_webpage_message(
             {"command": "setOpacity", "entityId": entity_id, "opacity": opacity}
         )
         self.entities[entity_id].opacity = opacity
+        self.broadcast_change_message(self.entities[entity_id])
 
     def set_viewport(
         self,
@@ -145,7 +168,7 @@ class EntityManager:
         height: int,
         use_percentage: bool,
     ) -> None:
-        self.broadcast_message(
+        self.broadcast_webpage_message(
             {
                 "command": "setViewport",
                 "entityId": entity_id,
@@ -162,12 +185,14 @@ class EntityManager:
         entity.width = width
         entity.height = height
         entity.use_percentage = use_percentage
+        self.broadcast_change_message(entity)
 
     def set_layer(self, entity_id: str, layer: int) -> None:
-        self.broadcast_message(
+        self.broadcast_webpage_message(
             {"command": "setLayer", "entityId": entity_id, "layer": layer}
         )
         self.entities[entity_id].layer = layer
+        self.broadcast_change_message(self.entities[entity_id])
 
     def fade(
         self,
@@ -176,7 +201,7 @@ class EntityManager:
         time: float,
         destroy_on_end: bool,
     ) -> None:
-        self.broadcast_message(
+        self.broadcast_webpage_message(
             {
                 "command": "fade",
                 "entityId": entity_id,
@@ -187,24 +212,42 @@ class EntityManager:
         )
         if destroy_on_end:
             del self.entities[entity_id]
+            self.broadcast_core_message(
+                {"messageType": "effect-removed", "entityId": entity_id}
+            )
         else:
             self.entities[entity_id].opacity = fade_to
+            self.broadcast_change_message(self.entities[entity_id])
 
     def get_component_id(self) -> str:
         return self.component_id
-
-    def get_last_created(self) -> str:
-        return self.last_created
 
     def get_all_entity_create_messages(self) -> list[str]:
         return [e.get_create_message() for e in self.entities.values()]
 
     def broadcast_create_message(self, entity: Image, fade: Fade | None) -> None:
-        self.broadcast_message(entity.get_create_message(fade))
+        self.broadcast_webpage_message(entity.get_create_message(fade))
 
-    def broadcast_message(self, message: dict[str, Any]) -> None:
-        for listener in self.message_listeners:
+    def broadcast_webpage_message(self, message: dict[str, Any]) -> None:
+        for listener in self.webpage_message_listeners:
             listener(message)
 
-    def add_message_listener(self, listener: Callable[[dict[str, Any]], None]) -> None:
-        self.message_listeners.append(listener)
+    def broadcast_change_message(self, entity: Image) -> None:
+        self.broadcast_core_message(
+            {"messageType": "effect-changed", "entityId": entity.entity_id}
+            | entity.get_state_for_core()
+        )
+
+    def broadcast_core_message(self, message: dict[str, Any]) -> None:
+        for listener in self.core_message_listeners:
+            listener(message)
+
+    def add_webpage_message_listener(
+        self, listener: Callable[[dict[str, Any]], None]
+    ) -> None:
+        self.webpage_message_listeners.append(listener)
+
+    def add_core_message_listener(
+        self, listener: Callable[[dict[str, Any]], None]
+    ) -> None:
+        self.core_message_listeners.append(listener)

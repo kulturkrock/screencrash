@@ -4,6 +4,7 @@ import json
 from typing import Any
 from entity_manager import EntityManager
 import traceback
+import asyncio
 
 
 def handle_message(message: dict[str, Any], entity_manager: EntityManager):
@@ -25,8 +26,16 @@ def get_component_info(entity_manager: EntityManager):
 
 async def core_connection(core_address: str, entity_manager: EntityManager):
 
+    current_websocket = None
+
+    def send_message(message: dict[str, Any]) -> None:
+        asyncio.create_task(current_websocket.send(json.dumps(message)))
+
+    entity_manager.add_core_message_listener(send_message)
+
     async for websocket in connect("ws://" + core_address):
         try:
+            current_websocket = websocket
             await websocket.send(
                 json.dumps({"type": "announce", "client": "media", "channel": 1})
             )
