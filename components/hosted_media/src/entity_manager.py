@@ -78,6 +78,8 @@ class EntityManager:
         entity_id = message.get("entityId")
         if cmd == "create":
             result = self.create(type, entity_id, message)
+        elif cmd == "destroy":
+            result = self.destroy(entity_id)
         elif cmd == "show":
             result = self.set_visible(entity_id, True)
         elif cmd == "hide":
