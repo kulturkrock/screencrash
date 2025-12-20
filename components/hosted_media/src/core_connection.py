@@ -29,7 +29,10 @@ async def core_connection(core_address: str, entity_manager: EntityManager):
     current_websocket = None
 
     def send_message(message: dict[str, Any]) -> None:
-        asyncio.create_task(current_websocket.send(json.dumps(message)))
+        if current_websocket is None:
+            print(f"No core connection for message: {message}")
+        else:
+            asyncio.create_task(current_websocket.send(json.dumps(message)))
 
     entity_manager.add_core_message_listener(send_message)
 
@@ -41,7 +44,7 @@ async def core_connection(core_address: str, entity_manager: EntityManager):
             )
             async for message in websocket:
                 try:
-                    print("Got message: " + message)
+                    print("Got message: " + str(message))
                     result = handle_message(json.loads(message), entity_manager)
                     if result is not None:
                         await websocket.send(json.dumps(result))

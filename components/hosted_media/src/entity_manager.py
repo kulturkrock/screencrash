@@ -2,8 +2,8 @@ from collections.abc import Callable
 from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
-from datetime import datetime
 import time
+from video_streamer import VideoStreamer
 
 
 @dataclass
@@ -140,7 +140,7 @@ class EntityManager:
         self.component_id = component_id
         self.webpage_message_listeners: list[Callable[[dict[str, Any]]]] = []
         self.core_message_listeners: list[Callable[[dict[str, Any]]]] = []
-        self.entities: dict[str, Image] = {}
+        self.entities: dict[str, Image | Video] = {}
 
     def handle_message(self, message):
         cmd = message["command"]
@@ -313,17 +313,19 @@ class EntityManager:
     def get_component_id(self) -> str:
         return self.component_id
 
-    def get_all_entity_create_messages(self) -> list[str]:
+    def get_all_entity_create_messages(self) -> list[dict[str, Any]]:
         return [e.get_create_message() for e in self.entities.values()]
 
-    def broadcast_create_message(self, entity: Image, fade: Fade | None) -> None:
+    def broadcast_create_message(
+        self, entity: Image | Video, fade: Fade | None
+    ) -> None:
         self.broadcast_webpage_message(entity.get_create_message(fade))
 
     def broadcast_webpage_message(self, message: dict[str, Any]) -> None:
         for listener in self.webpage_message_listeners:
             listener(message)
 
-    def broadcast_change_message(self, entity: Image) -> None:
+    def broadcast_change_message(self, entity: Image | Video) -> None:
         self.broadcast_core_message(
             {"messageType": "effect-changed", "entityId": entity.entity_id}
             | entity.get_state_for_core()

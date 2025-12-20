@@ -17,10 +17,6 @@ class RequestHandler:
     async def redirect_to_static(self, request):
         return web.Response(status=302, headers={"location": "static/index.html"})
 
-    async def get_state(self, request):
-        last_created = self.entity_manager.get_last_created()
-        return web.Response(text=json.dumps({"last_created": last_created}))
-
     def send_to_subscribers(self, message: dict[str, Any]):
         for resp in self.subscribe_responses:
             data = json.dumps(message)
@@ -46,7 +42,6 @@ def get_app(entity_manager: EntityManager, asset_dir: Path):
             web.static("/static", Path(__file__).parent / "static"),
             web.static("/assets", asset_dir, show_index=True),
             web.get("/api/subscribe", request_handler.subscribe),
-            web.get("/api/state", request_handler.get_state),
         ]
     )
     return app
