@@ -28,12 +28,7 @@ function subscribe() {
     } else if (message.command === "setLayer") {
       wrappers.setLayer(message.entityId, message.layer);
     } else if (message.command === "fade") {
-      wrappers.fade(
-        message.entityId,
-        message.to,
-        message.time,
-        message.destroyOnEnd
-      );
+      wrappers.fade(message.entityId, message.to, message.time);
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`

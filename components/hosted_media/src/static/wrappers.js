@@ -101,16 +101,12 @@ function setLayer(entityId, layer) {
   _setLayer(wrapper, layer);
 }
 
-function fade(entityId, fadeTo, time, destroyOnEnd) {
+function fade(entityId, fadeTo, time) {
   const wrapper = document.getElementById(entityId);
   wrapper.style.transition = `opacity ${time}s linear`;
   wrapper.style.opacity = fadeTo;
-  if (destroyOnEnd) {
-    setTimeout(() => destroy(entityId), time * 1000);
-  } else {
-    // Clean up the transition so it doesn't affect future opacity changes
-    setTimeout(() => (wrapper.style.transition = ""), time * 1000);
-  }
+  // Clean up the transition so it doesn't affect future opacity changes
+  setTimeout(() => (wrapper.style.transition = ""), time * 1000);
 }
 
 export default {

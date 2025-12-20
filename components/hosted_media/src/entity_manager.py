@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import time
 from video_streamer import VideoStreamer
+import asyncio
 
 
 @dataclass
@@ -148,6 +149,7 @@ class EntityManager:
         self.entities: dict[str, Image | Video] = {}
 
     def _delete_entity(self, entity_id: str):
+        self.broadcast_webpage_message({"command": "destroy", "entityId": entity_id})
         self.broadcast_core_message(
             {"messageType": "effect-removed", "entityId": entity_id}
         )
@@ -251,7 +253,6 @@ class EntityManager:
         )
 
     def destroy(self, entity_id: str) -> None:
-        self.broadcast_webpage_message({"command": "destroy", "entityId": entity_id})
         self._delete_entity(entity_id)
 
     def set_visible(self, entity_id: str, visible: bool) -> None:
@@ -303,6 +304,10 @@ class EntityManager:
         self.entities[entity_id].layer = layer
         self.broadcast_change_message(self.entities[entity_id])
 
+    async def _delete_with_delay(self, entity_id: str, delay: float) -> None:
+        await asyncio.sleep(delay)
+        self._delete_entity(entity_id)
+
     def fade(
         self,
         entity_id: str,
@@ -316,11 +321,11 @@ class EntityManager:
                 "entityId": entity_id,
                 "to": fade_to,
                 "time": time,
-                "destroyOnEnd": destroy_on_end,
             }
         )
         if destroy_on_end:
-            self._delete_entity(entity_id)  # TODO: schedule this
+            # We wait one second longer than the fade should take, just to be sure it's done
+            asyncio.create_task(self._delete_with_delay(entity_id, time + 1))
         else:
             self.entities[entity_id].opacity = fade_to
             self.broadcast_change_message(self.entities[entity_id])
