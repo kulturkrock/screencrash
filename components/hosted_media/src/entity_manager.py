@@ -2,6 +2,8 @@ from collections.abc import Callable
 from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
+from datetime import datetime
+import time
 
 
 @dataclass
@@ -64,6 +66,74 @@ class Image:
         }
 
 
+@dataclass
+class Video:
+    entity_id: str
+    asset: str
+    display_name: str
+    x: int
+    y: int
+    width: int | None
+    height: int | None
+    use_percentage: bool
+    opacity: float
+    layer: int
+    visible: bool
+    # fade_in only matters when creating
+    loops_left: int
+    # autostart only matters when creating
+    # seamless and mimeCodec are specific to other media component
+    # start_at only matters when creating
+    fade_out: int
+    destroy_on_end: bool
+    playing: bool
+    position: float  # How can this be synced with webpage? Get dynamically somehow?
+
+    def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
+        message = {
+            "command": "create",
+            "type": "video",
+            "entityId": self.entity_id,
+            "asset": "/".join(Path(self.asset).parts[1:]),
+            "x": self.x,
+            "y": self.y,
+            "width": self.width,
+            "height": self.height,
+            "usePercentage": self.use_percentage,
+            "opacity": self.opacity,
+            "layer": self.layer,
+            "visible": self.visible,
+            # Autostart? Seek?
+            # I AM HERE: Serve from a url already now. Create a new object for handling the video, that streams.
+            # Do we play/pause in browser or backend? What about seek?
+        }
+        if fade is not None:
+            message["fadeIn"] = {
+                "from": fade.fade_from,
+                "to": fade.fade_to,
+                "time": fade.time,
+            }
+        return message
+
+    def get_state_for_core(self) -> dict[str, Any]:
+        return {
+            "effectType": "video",
+            "name": self.display_name,
+            "visible": self.visible,
+            "opacity": self.opacity,
+            "viewport_x": self.x,
+            "viewport_y": self.y,
+            "viewport_width": self.width,
+            "viewport_height": self.height,
+            "layer": self.layer,
+            "duration": 10,  # TODO: real value
+            "currentTime": self.position,
+            "lastSync": time.time() * 1000,
+            "playing": self.playing,
+            "looping": self.loops_left > 0,
+        }
+
+
 class EntityManager:
 
     def __init__(self, component_id: str):
@@ -123,16 +193,35 @@ class EntityManager:
                 layer=message.get("layer", 0),
                 visible=message.get("visible", False),
             )
-            if "fadeIn" in message:
-                fade = Fade(
-                    fade_from=message["fadeIn"]["from"],
-                    fade_to=message["fadeIn"]["to"],
-                    time=message["fadeIn"]["time"],
-                )
-            else:
-                fade = None
+        elif type == "video":
+            new_entity = Video(
+                entity_id=entity_id,
+                asset=message["asset"],
+                display_name=message.get("displayName", message["asset"]),
+                x=message.get("x", 0),
+                y=message.get("y", 0),
+                width=message.get("width", None),
+                height=message.get("height", None),
+                use_percentage=message.get("usePercentage", False),
+                opacity=message.get("opacity", 1),
+                layer=message.get("layer", 0),
+                visible=message.get("visible", False),
+                loops_left=message.get("looping", 1),
+                fade_out=message.get("fadeOut", 0),
+                destroy_on_end=message.get("destroyOnEnd", True),
+                playing=message.get("autostart", True),
+                position=message.get("start_at", 0),
+            )
         else:
             raise RuntimeError(f"Unsupported type {type}")
+        if "fadeIn" in message:
+            fade = Fade(
+                fade_from=message["fadeIn"]["from"],
+                fade_to=message["fadeIn"]["to"],
+                time=message["fadeIn"]["time"],
+            )
+        else:
+            fade = None
         self.entities[entity_id] = new_entity
         self.broadcast_create_message(new_entity, fade)
         self.broadcast_core_message(

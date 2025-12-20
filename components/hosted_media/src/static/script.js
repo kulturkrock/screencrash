@@ -1,4 +1,5 @@
 import images from "./images.js";
+import videos from "./videos.js";
 import wrappers from "./wrappers.js";
 
 function subscribe() {
@@ -9,6 +10,8 @@ function subscribe() {
       wrappers.destroy(message.entityId);
     } else if (message.command === "create" && message.type === "image") {
       wrappers.create(message, images.setupImage);
+    } else if (message.command === "create" && message.type === "video") {
+      wrappers.create(message, videos.setupVideo);
     } else if (message.command === "setVisible") {
       wrappers.setVisible(message.entityId, message.visible);
     } else if (message.command === "setOpacity") {
