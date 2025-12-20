@@ -88,6 +88,7 @@ class Video:
     destroy_on_end: bool
     playing: bool
     position: float  # How can this be synced with webpage? Get dynamically somehow?
+    video_streamer: VideoStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
         message = {
@@ -139,8 +140,23 @@ class EntityManager:
     def __init__(self, component_id: str):
         self.component_id = component_id
         self.webpage_message_listeners: list[Callable[[dict[str, Any]]]] = []
+        self.create_video_streamer_listeners: list[
+            Callable[[str, VideoStreamer], None]
+        ] = []
+        self.delete_video_streamer_listeners: list[Callable[[str], None]] = []
         self.core_message_listeners: list[Callable[[dict[str, Any]]]] = []
         self.entities: dict[str, Image | Video] = {}
+
+    def _delete_entity(self, entity_id: str):
+        self.broadcast_core_message(
+            {"messageType": "effect-removed", "entityId": entity_id}
+        )
+        entity = self.entities[entity_id]
+        if isinstance(entity, Video):
+            entity.video_streamer.stop()
+            for listener in self.delete_video_streamer_listeners:
+                listener(entity_id)
+        del self.entities[entity_id]
 
     def handle_message(self, message):
         cmd = message["command"]
@@ -194,6 +210,10 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
+            streamer = VideoStreamer(message["asset"])
+            for listener in self.create_video_streamer_listeners:
+                listener(entity_id, streamer)
+            streamer.start()
             new_entity = Video(
                 entity_id=entity_id,
                 asset=message["asset"],
@@ -211,6 +231,7 @@ class EntityManager:
                 destroy_on_end=message.get("destroyOnEnd", True),
                 playing=message.get("autostart", True),
                 position=message.get("start_at", 0),
+                video_streamer=streamer,
             )
         else:
             raise RuntimeError(f"Unsupported type {type}")
@@ -231,10 +252,7 @@ class EntityManager:
 
     def destroy(self, entity_id: str) -> None:
         self.broadcast_webpage_message({"command": "destroy", "entityId": entity_id})
-        self.broadcast_core_message(
-            {"messageType": "effect-removed", "entityId": entity_id}
-        )
-        del self.entities[entity_id]
+        self._delete_entity(entity_id)
 
     def set_visible(self, entity_id: str, visible: bool) -> None:
         self.broadcast_webpage_message(
@@ -302,10 +320,7 @@ class EntityManager:
             }
         )
         if destroy_on_end:
-            del self.entities[entity_id]
-            self.broadcast_core_message(
-                {"messageType": "effect-removed", "entityId": entity_id}
-            )
+            self._delete_entity(entity_id)  # TODO: schedule this
         else:
             self.entities[entity_id].opacity = fade_to
             self.broadcast_change_message(self.entities[entity_id])
@@ -339,6 +354,14 @@ class EntityManager:
         self, listener: Callable[[dict[str, Any]], None]
     ) -> None:
         self.webpage_message_listeners.append(listener)
+
+    def add_create_video_streamer_listener(
+        self, listener: Callable[[str, VideoStreamer], None]
+    ):
+        self.create_video_streamer_listeners.append(listener)
+
+    def add_delete_video_streamer_listener(self, listener: Callable[[str], None]):
+        self.delete_video_streamer_listeners.append(listener)
 
     def add_core_message_listener(
         self, listener: Callable[[dict[str, Any]], None]

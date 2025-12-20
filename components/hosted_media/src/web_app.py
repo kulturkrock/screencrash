@@ -5,6 +5,7 @@ import json
 from aiohttp_sse import sse_response
 import asyncio
 from typing import Any
+from video_streamer import VideoStreamer
 
 
 class RequestHandler:
@@ -14,6 +15,14 @@ class RequestHandler:
         self.entity_manager.add_webpage_message_listener(self.send_to_subscribers)
         self.subscribe_responses = []
 
+        self.entity_manager.add_create_video_streamer_listener(
+            self.register_video_streamer
+        )
+        self.entity_manager.add_delete_video_streamer_listener(
+            self.deregister_video_streamer
+        )
+        self.video_streamers: dict[str, VideoStreamer] = {}
+
     async def redirect_to_static(self, request):
         return web.Response(status=302, headers={"location": "static/index.html"})
 
@@ -21,6 +30,12 @@ class RequestHandler:
         for resp in self.subscribe_responses:
             data = json.dumps(message)
             asyncio.create_task(resp.send(data))
+
+    def register_video_streamer(self, entity_id: str, streamer: VideoStreamer):
+        self.video_streamers[entity_id] = streamer
+
+    def deregister_video_streamer(self, entity_id: str):
+        del self.video_streamers[entity_id]
 
     async def subscribe(self, request):
         async with sse_response(request) as resp:
