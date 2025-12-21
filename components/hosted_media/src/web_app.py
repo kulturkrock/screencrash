@@ -23,7 +23,7 @@ class RequestHandler:
         )
         self.video_streamers: dict[str, VideoStreamer] = {}
 
-    async def redirect_to_static(self, request):
+    async def redirect_to_static(self, request: web.Request):
         return web.Response(status=302, headers={"location": "static/index.html"})
 
     def send_to_subscribers(self, message: dict[str, Any]):
@@ -36,6 +36,23 @@ class RequestHandler:
 
     def deregister_video_streamer(self, entity_id: str):
         del self.video_streamers[entity_id]
+
+    async def stream(self, request: web.Request):
+        streamer = self.video_streamers[request.match_info["entity_id"]]
+        response = web.StreamResponse(
+            headers={
+                "Content-Type": streamer.get_mimetype(),
+            }
+        )
+        await response.prepare(request)
+
+        while not streamer.is_done():
+            chunk = await streamer.get_chunk()  # May block a while
+            await response.write(chunk)
+
+        await response.write_eof()
+
+        return response
 
     async def subscribe(self, request):
         async with sse_response(request) as resp:
@@ -57,6 +74,7 @@ def get_app(entity_manager: EntityManager, asset_dir: Path):
             web.static("/static", Path(__file__).parent / "static"),
             web.static("/assets", asset_dir, show_index=True),
             web.get("/api/subscribe", request_handler.subscribe),
+            web.get("/api/stream/{entity_id}", request_handler.stream),
         ]
     )
     return app

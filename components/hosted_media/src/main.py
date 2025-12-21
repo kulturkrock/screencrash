@@ -12,7 +12,6 @@ from pathlib import Path
 async def main():
 
     component_id = str(uuid4())
-    entity_manager = EntityManager(component_id)
     asset_dir = Path(
         os.environ.get(
             "SCREENCRASH_HOSTED_MEDIA_RESOURCES",
@@ -21,6 +20,7 @@ async def main():
             / "Till föreställningen",
         )
     )
+    entity_manager = EntityManager(component_id, asset_dir)
 
     app = get_app(entity_manager, asset_dir)
 

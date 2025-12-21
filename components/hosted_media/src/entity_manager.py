@@ -138,8 +138,9 @@ class Video:
 
 class EntityManager:
 
-    def __init__(self, component_id: str):
+    def __init__(self, component_id: str, asset_dir: Path):
         self.component_id = component_id
+        self.asset_dir = asset_dir
         self.webpage_message_listeners: list[Callable[[dict[str, Any]]]] = []
         self.create_video_streamer_listeners: list[
             Callable[[str, VideoStreamer], None]
@@ -212,7 +213,7 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
-            streamer = VideoStreamer(message["asset"])
+            streamer = VideoStreamer(message["asset"], self.asset_dir)
             for listener in self.create_video_streamer_listeners:
                 listener(entity_id, streamer)
             streamer.start()

@@ -1,6 +1,7 @@
 function setupVideo(wrapper, message) {
-  //const html = `<img id = 'image-${message.entityId}' class = 'image-media' src = '/assets/${message.asset}'>`;
-  const html = "TEST";
+  // TODO: Need to instruct users to allow autoplay. Can we check with javascript?
+  // TODO: Also need the audio workaround from the old media
+  const html = `<video id = 'video-${message.entityId}' class = 'video-media' autoplay src = '/api/stream/${message.entityId}'>`;
   wrapper.innerHTML = html;
 }
 
