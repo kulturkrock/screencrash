@@ -38,7 +38,7 @@ class RequestHandler:
         del self.video_streamers[entity_id]
 
     async def stream(self, request: web.Request):
-        streamer = self.video_streamers[request.match_info["entity_id"]]
+        streamer = self.video_streamers[request.match_info["stream_id"]]
         response = web.StreamResponse(
             headers={
                 "Content-Type": streamer.get_mimetype(),
@@ -74,7 +74,7 @@ def get_app(entity_manager: EntityManager, asset_dir: Path):
             web.static("/static", Path(__file__).parent / "static"),
             web.static("/assets", asset_dir, show_index=True),
             web.get("/api/subscribe", request_handler.subscribe),
-            web.get("/api/stream/{entity_id}", request_handler.stream),
+            web.get("/api/stream/{stream_id}", request_handler.stream),
         ]
     )
     return app

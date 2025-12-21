@@ -5,6 +5,8 @@ from pathlib import Path
 import time
 from video_streamer import VideoStreamer
 import asyncio
+import random
+import string
 
 
 @dataclass
@@ -89,6 +91,7 @@ class Video:
     destroy_on_end: bool
     playing: bool
     position: float  # How can this be synced with webpage? Get dynamically somehow?
+    stream_id: str  # Different from entity ID so the browser doesn't cache the video
     video_streamer: VideoStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
@@ -96,6 +99,7 @@ class Video:
             "command": "create",
             "type": "video",
             "entityId": self.entity_id,
+            "streamId": self.stream_id,
             "asset": "/".join(Path(self.asset).parts[1:]),
             "x": self.x,
             "y": self.y,
@@ -158,7 +162,7 @@ class EntityManager:
         if isinstance(entity, Video):
             entity.video_streamer.stop()
             for listener in self.delete_video_streamer_listeners:
-                listener(entity_id)
+                listener(entity.stream_id)
         del self.entities[entity_id]
 
     def handle_message(self, message):
@@ -214,8 +218,13 @@ class EntityManager:
             )
         elif type == "video":
             streamer = VideoStreamer(message["asset"], self.asset_dir)
+            stream_id = (
+                entity_id
+                + "-"
+                + "".join(random.choice(string.ascii_lowercase) for i in range(20))
+            )
             for listener in self.create_video_streamer_listeners:
-                listener(entity_id, streamer)
+                listener(stream_id, streamer)
             streamer.start()
             new_entity = Video(
                 entity_id=entity_id,
@@ -234,6 +243,7 @@ class EntityManager:
                 destroy_on_end=message.get("destroyOnEnd", True),
                 playing=message.get("autostart", True),
                 position=message.get("start_at", 0),
+                stream_id=stream_id,
                 video_streamer=streamer,
             )
         else:
