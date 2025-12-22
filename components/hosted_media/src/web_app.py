@@ -6,6 +6,7 @@ from aiohttp_sse import sse_response
 import asyncio
 from typing import Any
 from video_streamer import VideoStreamer
+import aiofiles
 
 
 class RequestHandler:
@@ -38,7 +39,10 @@ class RequestHandler:
         del self.video_streamers[entity_id]
 
     async def stream(self, request: web.Request):
-        streamer = self.video_streamers[request.match_info["stream_id"]]
+        try:
+            streamer = self.video_streamers[request.match_info["stream_id"]]
+        except KeyError:
+            return web.Response(status=404)
         response = web.StreamResponse(
             headers={
                 "Content-Type": streamer.get_mimetype(),
@@ -47,9 +51,9 @@ class RequestHandler:
         try:
             await response.prepare(request)
 
-            with open(streamer.get_output_file(), "rb") as f:
+            async with aiofiles.open(streamer.get_output_file(), "rb") as f:
                 while not streamer.is_done():
-                    chunk = f.read()
+                    chunk = await f.read(1000)
                     if len(chunk) > 0:
                         await response.write(chunk)
                     else:

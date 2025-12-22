@@ -1,6 +1,8 @@
 from pathlib import Path
 import tempfile
-import shutil
+
+from asyncio.subprocess import Process
+import asyncio
 
 
 class VideoStreamer:
@@ -9,6 +11,7 @@ class VideoStreamer:
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.temp_dir = None
         self.output_video_file_path = None
+        self.ffmpeg_process: None | Process = None
         self.done = False
 
     def start(self) -> None:
@@ -16,11 +19,42 @@ class VideoStreamer:
         self.output_video_file_path = Path(self.temp_dir.name) / (
             "out" + self.input_video_file_path.suffix
         )
-        shutil.copy(self.input_video_file_path, self.output_video_file_path)
+        self.output_video_file_path.touch()
+        # shutil.copy(self.input_video_file_path, self.output_video_file_path)
+        asyncio.create_task(self._start_ffmpeg())
+
+    async def _start_ffmpeg(self) -> None:
+        if self.output_video_file_path is None or self.temp_dir is None:
+            raise RuntimeError("VideoStreamer never started")
+        tmp_dir = Path(self.temp_dir.name)
+        with open(tmp_dir / "files.txt", "w") as f:
+            f.write(f"file '{self.input_video_file_path}'\n")
+            f.write(f"file '{self.input_video_file_path}'\n")
+        with open(self.output_video_file_path, "wb") as f:
+            self.ffmpeg_process = await asyncio.create_subprocess_exec(
+                "ffmpeg",
+                "-y",
+                "-re",
+                "-stream_loop",
+                "-1",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                tmp_dir / "files.txt",
+                "-c",
+                "copy",
+                "-f",
+                "webm",
+                "pipe:",
+                stdout=f,
+            )
 
     def stop(self) -> None:
-        if self.temp_dir is None:
+        if self.temp_dir is None or self.ffmpeg_process is None:
             raise RuntimeError("VideoStreamer never started")
+        self.ffmpeg_process.kill()
         self.temp_dir.cleanup()
         self.done = True
 
@@ -65,3 +99,5 @@ class VideoStreamer:
         #   * stream via rtmp, udp or tcp to aiohttp server, or just put it in a file
         #   * aiohttp passes it on, should push chunks instead of getting?
         #   * Or we read a file, then poll when we're at the end <--- TRYING THIS NOW
+
+        # concat with re, infinite loop (but should be able to end?)
