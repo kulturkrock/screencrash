@@ -1,22 +1,27 @@
 from pathlib import Path
-from io import BufferedReader
-import asyncio
+import tempfile
+import shutil
 
 
 class VideoStreamer:
 
     def __init__(self, asset: Path, asset_dir: Path):
-        self.video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.temp_dir = None
+        self.output_video_file_path = None
         self.done = False
-        self.file: BufferedReader | None = None
 
     def start(self) -> None:
-        self.file = open(self.video_file_path, "rb")
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.output_video_file_path = Path(self.temp_dir.name) / (
+            "out" + self.input_video_file_path.suffix
+        )
+        shutil.copy(self.input_video_file_path, self.output_video_file_path)
 
     def stop(self) -> None:
-        if self.file is None:
-            raise RuntimeError(f"{self.video_file_path} not started")
-        self.file.close()
+        if self.temp_dir is None:
+            raise RuntimeError("VideoStreamer never started")
+        self.temp_dir.cleanup()
         self.done = True
 
     def get_mimetype(self) -> str:
@@ -25,8 +30,11 @@ class VideoStreamer:
     def is_done(self) -> bool:
         return self.done
 
-    async def get_chunk(self) -> bytes:
-        # TODO: Does not handle multiple callers well
+    def get_output_file(self) -> Path:
+        if self.output_video_file_path is None:
+            raise RuntimeError("VideoStreamer never started")
+        return self.output_video_file_path
+
         # TODO: Vamp script makes separate audio and video, so the files from Zelda are like that
         #       - Why did we need that?
         #         * Because video and audio sample rates didn't add up?
@@ -44,9 +52,16 @@ class VideoStreamer:
         #   * Need to handle reconnections? Keyframes...
         # - Is there some starting data we need to skip on files after the first?
 
-        if self.file is None:
-            raise RuntimeError(f"{self.video_file_path} not started")
-        chunk_size = 100000
-        chunk = self.file.read(chunk_size)  # TODO: async
-        await asyncio.sleep(0.1)
-        return chunk
+        # Let's think it through. What do I need?
+        # - Stream a video, next part may be replaced on short notice (<1s)
+        # - Pause (may be done in frontend)
+        # - Seek (within a file)
+        # Solutions:
+        # - webrtc?
+        #   * python lib only supports h264/vp8, check transparency
+        # - libav?
+        #   * trying, it's complex
+        # - ffmpeg?
+        #   * stream via rtmp, udp or tcp to aiohttp server, or just put it in a file
+        #   * aiohttp passes it on, should push chunks instead of getting?
+        #   * Or we read a file, then poll when we're at the end <--- TRYING THIS NOW

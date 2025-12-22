@@ -1,4 +1,4 @@
-from aiohttp import web
+from aiohttp import web, ClientConnectionResetError
 from entity_manager import EntityManager
 from pathlib import Path
 import json
@@ -44,13 +44,20 @@ class RequestHandler:
                 "Content-Type": streamer.get_mimetype(),
             }
         )
-        await response.prepare(request)
+        try:
+            await response.prepare(request)
 
-        while not streamer.is_done():
-            chunk = await streamer.get_chunk()  # May block a while
-            await response.write(chunk)
+            with open(streamer.get_output_file(), "rb") as f:
+                while not streamer.is_done():
+                    chunk = f.read()
+                    if len(chunk) > 0:
+                        await response.write(chunk)
+                    else:
+                        await asyncio.sleep(1)
 
-        await response.write_eof()
+            await response.write_eof()
+        except ClientConnectionResetError:
+            print("Client went away")
 
         return response
 
