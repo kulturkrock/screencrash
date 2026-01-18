@@ -1,6 +1,10 @@
 import domUtils from "./domUtils.js";
 
 function create(message, setupFunction) {
+  // Destroy old element, in case we haven't been told to by the backend
+  if (document.getElementById(message.entityId) !== null) {
+    destroy(message.entityId);
+  }
   const wrapper = document.createElement("div");
   wrapper.id = message.entityId;
 
