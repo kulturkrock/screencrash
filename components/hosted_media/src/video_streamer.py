@@ -3,6 +3,8 @@ import tempfile
 
 from asyncio.subprocess import Process
 import asyncio
+import av
+import av.subtitles.stream
 
 
 class VideoStreamer:
@@ -20,43 +22,75 @@ class VideoStreamer:
             "out" + self.input_video_file_path.suffix
         )
         self.output_video_file_path.touch()
-        # shutil.copy(self.input_video_file_path, self.output_video_file_path)
-        asyncio.create_task(self._start_ffmpeg())
+        asyncio.create_task(self._stream())
 
-    async def _start_ffmpeg(self) -> None:
-        if self.output_video_file_path is None or self.temp_dir is None:
+    async def _stream(self) -> None:
+        if self.output_video_file_path is None:
             raise RuntimeError("VideoStreamer never started")
-        tmp_dir = Path(self.temp_dir.name)
-        with open(tmp_dir / "files.txt", "w") as f:
-            f.write(f"file '{self.input_video_file_path}'\n")
-            f.write(f"file '{self.input_video_file_path}'\n")
-        with open(self.output_video_file_path, "wb") as f:
-            self.ffmpeg_process = await asyncio.create_subprocess_exec(
-                "ffmpeg",
-                "-y",
-                "-re",
-                # "-readrate",
-                # "10",
-                "-stream_loop",  # No work :(
-                "-1",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                tmp_dir / "files.txt",
-                "-c",
-                "copy",
-                "-f",
-                "webm",
-                "pipe:",
-                stdout=f,
-            )
+        with av.open(
+            self.output_video_file_path, "w", format="webm"
+        ) as output_container:
+            # Initialize
+            stream_offset: dict[int, int] = {}
+            tmp_last_pts: list[int | None] = [None, None, None, None, None, None]
+            tmp_last_dur: list[int | None] = [None, None, None, None, None, None]
+            with av.open(self.input_video_file_path, "r") as input_container:
+                for stream in input_container.streams:
+                    if (
+                        isinstance(stream, av.VideoStream)
+                        or isinstance(stream, av.AudioStream)
+                        # We're not using subtitles, but since it's supported we may as well add it
+                        or isinstance(stream, av.subtitles.stream.SubtitleStream)
+                    ):
+                        out_stream = output_container.add_stream_from_template(stream)
+                        stream_offset[out_stream.index] = 0
+
+            for i in range(5):
+                with av.open(self.input_video_file_path, "r") as input_container:
+                    lowest_packet_start = {
+                        key: value for key, value in stream_offset.items()
+                    }
+                    highest_packet_end = {
+                        key: value for key, value in stream_offset.items()
+                    }
+
+                    for i, packet in enumerate(input_container.demux()):
+                        if packet.pts is not None:
+                            if packet.duration is None:
+                                raise RuntimeError("packet.duration is None")
+                            if packet.dts is None:
+                                raise RuntimeError("packet.dts is None")
+                            packet.pts += stream_offset[packet.stream_index]
+                            packet.dts += stream_offset[packet.stream_index]
+                            tmp_last_pts.pop(0)
+                            tmp_last_pts.append(packet.pts)
+                            tmp_last_dur.pop(0)
+                            tmp_last_dur.append(packet.duration)
+                            if i == 2:
+                                print(tmp_last_pts)
+                                print(tmp_last_dur)
+
+                            if packet.pts < lowest_packet_start[packet.stream_index]:
+                                lowest_packet_start[packet.stream_index] = packet.pts
+                            if (
+                                packet.pts + packet.duration
+                                > highest_packet_end[packet.stream_index]
+                            ):
+                                highest_packet_end[packet.stream_index] = (
+                                    packet.pts + packet.duration
+                                )
+                        output_container.mux(packet)
+
+                    stream_offset = {
+                        stream_index: stream_offset[stream_index]
+                        + highest_packet_end[stream_index]
+                        - lowest_packet_start[stream_index]
+                        for stream_index in highest_packet_end.keys()
+                    }
 
     def stop(self) -> None:
-        if self.temp_dir is None or self.ffmpeg_process is None:
+        if self.temp_dir is None:
             raise RuntimeError("VideoStreamer never started")
-        self.ffmpeg_process.kill()
         self.temp_dir.cleanup()
         self.done = True
 
@@ -74,6 +108,7 @@ class VideoStreamer:
         # TODO: Vamp script makes separate audio and video, so the files from Zelda are like that
         #       - Why did we need that?
         #         * Because video and audio sample rates didn't add up?
+        #         * Because audio needs to be wav?
 
         # We can send data as we go
         # Using it for pause:
@@ -105,3 +140,27 @@ class VideoStreamer:
         # concat with re, infinite loop (but should be able to end?)
         # -re is too slow to start
         # Need more granular control I think, try pyav again?
+
+        # With pyav:
+        # - Need to play synced video+audio
+        # - audio needs to line up exactly
+        # - video needs to be a keyframe, at least. But it may be more complicated, so easiest to make multiple files?
+        #   * Or make sure it's encoded with friendly settings: No B-frames, no referring to frames before the last keyframe
+        # - We can probably afford to reencode the audio on the fly, but probably not the video
+        #
+        # Sketch (one video file):
+        # - Assume friendly file
+        # - Get two very exact timestamps to loop between
+        #   * Can be changed with an action
+        # - When reaching the (packet containing the) loop-end in the audio stream:
+        #   * Decode the packet
+        #   * Cut it so it only contains audio up to the loop-end
+        #   * Re-encode and send
+        #   * seek to the (packet containing the) loop-start
+        #   * Cut it so it only contains audio after the loop-start
+        #   * Re-encode and send
+        #   * Continue re-encoding until the next keyframe?
+        # - In the video stream:
+        #   * Same thing, but the frames won't line up with the audio
+        #   * We shorten the duration of the current frame, both before and after
+        #   * Try re-encoding the video too, until the next keyframe. Test it on a weak laptop.
