@@ -2,7 +2,7 @@
 name = "hosted_media"
 version = "0.1.0"
 description = "Default template for PDM package"
-dependencies = ["aiohttp>=3.13.2", "websockets>=15.0.1", "aiohttp-sse>=2.2.0", "aiofiles>=25.1.0"]
+dependencies = ["aiohttp>=3.13.2", "websockets>=15.0.1", "aiohttp-sse>=2.2.0", "aiofiles>=25.1.0", "av>=15.1.0"]
 requires-python = ">=3.9"
 
 [tool.pdm]
