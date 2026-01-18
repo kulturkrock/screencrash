@@ -35,7 +35,9 @@ class VideoStreamer:
                 "ffmpeg",
                 "-y",
                 "-re",
-                "-stream_loop",
+                # "-readrate",
+                # "10",
+                "-stream_loop",  # No work :(
                 "-1",
                 "-f",
                 "concat",
@@ -101,3 +103,5 @@ class VideoStreamer:
         #   * Or we read a file, then poll when we're at the end <--- TRYING THIS NOW
 
         # concat with re, infinite loop (but should be able to end?)
+        # -re is too slow to start
+        # Need more granular control I think, try pyav again?
