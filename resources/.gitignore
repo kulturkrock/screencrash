@@ -2,3 +2,5 @@
 
 !.gitignore
 !real_opus.yaml
+!readme.txt
+!Makefile
