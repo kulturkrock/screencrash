@@ -1,20 +1,27 @@
 from pathlib import Path
 import tempfile
+from collections.abc import Callable
 
-from asyncio.subprocess import Process
 import asyncio
 import av
+import av.container
 import av.subtitles.stream
 
 
 class VideoStreamer:
 
-    def __init__(self, asset: Path, asset_dir: Path):
+    def __init__(
+        self,
+        asset: Path,
+        asset_dir: Path,
+        effect_changed_callback: Callable[[], None],
+    ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.effect_changed_callback = effect_changed_callback
         self.temp_dir = None
         self.output_video_file_path = None
-        self.ffmpeg_process: None | Process = None
         self.done = False
+        self.duration: float | None = None
 
     def start(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -24,29 +31,47 @@ class VideoStreamer:
         self.output_video_file_path.touch()
         asyncio.create_task(self._stream())
 
+    def get_duration(self) -> float:
+        if self.duration is None:
+            return 0
+        return self.duration
+
+    def get_position(self) -> float:
+        return 0
+
+    def _init_from_input_container(
+        self,
+        input_container: av.container.InputContainer,
+        output_container: av.container.OutputContainer,
+    ) -> dict[int, int]:
+        if input_container.duration is None:
+            raise RuntimeError("container.duration is None")
+        self.duration = input_container.duration / av.time_base
+        self.effect_changed_callback()  # To let people know the actual duration
+        stream_offset: dict[int, int] = {}
+        for stream in input_container.streams:
+            if (
+                isinstance(stream, av.VideoStream)
+                or isinstance(stream, av.AudioStream)
+                # We're not using subtitles, but since it's supported we may as well add it
+                or isinstance(stream, av.subtitles.stream.SubtitleStream)
+            ):
+                out_stream = output_container.add_stream_from_template(stream)
+                stream_offset[out_stream.index] = 0
+        return stream_offset
+
     async def _stream(self) -> None:
         if self.output_video_file_path is None:
             raise RuntimeError("VideoStreamer never started")
         with av.open(
             self.output_video_file_path, "w", format="webm"
         ) as output_container:
-            # Initialize
-            stream_offset: dict[int, int] = {}
-            tmp_last_pts: list[int | None] = [None, None, None, None, None, None]
-            tmp_last_dur: list[int | None] = [None, None, None, None, None, None]
             with av.open(self.input_video_file_path, "r") as input_container:
-                for stream in input_container.streams:
-                    if (
-                        isinstance(stream, av.VideoStream)
-                        or isinstance(stream, av.AudioStream)
-                        # We're not using subtitles, but since it's supported we may as well add it
-                        or isinstance(stream, av.subtitles.stream.SubtitleStream)
-                    ):
-                        out_stream = output_container.add_stream_from_template(stream)
-                        stream_offset[out_stream.index] = 0
-
-            for i in range(5):
-                with av.open(self.input_video_file_path, "r") as input_container:
+                stream_offset = self._init_from_input_container(
+                    input_container, output_container
+                )
+                for _ in range(5):
+                    input_container.seek(0)
                     lowest_packet_start = {
                         key: value for key, value in stream_offset.items()
                     }
@@ -54,7 +79,7 @@ class VideoStreamer:
                         key: value for key, value in stream_offset.items()
                     }
 
-                    for i, packet in enumerate(input_container.demux()):
+                    for packet in input_container.demux():
                         if packet.pts is not None:
                             if packet.duration is None:
                                 raise RuntimeError("packet.duration is None")
@@ -62,13 +87,6 @@ class VideoStreamer:
                                 raise RuntimeError("packet.dts is None")
                             packet.pts += stream_offset[packet.stream_index]
                             packet.dts += stream_offset[packet.stream_index]
-                            tmp_last_pts.pop(0)
-                            tmp_last_pts.append(packet.pts)
-                            tmp_last_dur.pop(0)
-                            tmp_last_dur.append(packet.duration)
-                            if i == 2:
-                                print(tmp_last_pts)
-                                print(tmp_last_dur)
 
                             if packet.pts < lowest_packet_start[packet.stream_index]:
                                 lowest_packet_start[packet.stream_index] = packet.pts
@@ -95,7 +113,7 @@ class VideoStreamer:
         self.done = True
 
     def get_mimetype(self) -> str:
-        return "video/webm"  # TODO: Depends on file
+        return "video/webm"
 
     def is_done(self) -> bool:
         return self.done

@@ -109,9 +109,6 @@ class Video:
             "opacity": self.opacity,
             "layer": self.layer,
             "visible": self.visible,
-            # Autostart? Seek?
-            # I AM HERE: Serve from a url already now. Create a new object for handling the video, that streams.
-            # Do we play/pause in browser or backend? What about seek?
         }
         if fade is not None:
             message["fadeIn"] = {
@@ -132,8 +129,8 @@ class Video:
             "viewport_width": self.width,
             "viewport_height": self.height,
             "layer": self.layer,
-            "duration": 10,  # TODO: real value
-            "currentTime": self.position,
+            "duration": self.video_streamer.get_duration(),
+            "currentTime": self.video_streamer.get_position(),
             "lastSync": time.time() * 1000,
             "playing": self.playing,
             "looping": self.loops_left > 0,
@@ -217,7 +214,11 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
-            streamer = VideoStreamer(message["asset"], self.asset_dir)
+            streamer = VideoStreamer(
+                message["asset"],
+                self.asset_dir,
+                lambda: self.broadcast_change_message(self.entities[entity_id]),
+            )
             stream_id = (
                 entity_id
                 + "-"
