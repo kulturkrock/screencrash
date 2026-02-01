@@ -118,7 +118,7 @@ class VideoStreamer:
                 except StopIteration:
                     break
                 if packet.pts is not None:
-                    pts_in_av_time_base = _convert_time_base(
+                    pts_in_av_time_base = _convert_time_base_inexact(
                         packet.pts, packet.time_base, av.time_base
                     )
                     # tmp
@@ -138,6 +138,8 @@ class VideoStreamer:
                             packet.pts = next_audio_pts
                             packet.dts = next_audio_pts
                         next_audio_pts = packet.pts + packet.duration
+                    else:
+                        continue  # Discard all other packets
                 output_container.mux(packet)
             self.done = True
 
@@ -177,6 +179,21 @@ def _convert_time_base(
         raise RuntimeError(
             f"Cannot convert from time base {from_time_base} to {to_time_base}"
         )
+
+
+def _convert_time_base_inexact(
+    time: int, from_time_base: int | Fraction, to_time_base: int | Fraction
+) -> float:
+    # If a time_base is an int, assume it's av.time_base and convert it to the same form
+    # as other time_bases
+    if isinstance(from_time_base, int):
+        from_time_base = Fraction(1, from_time_base)
+    if isinstance(to_time_base, int):
+        to_time_base = Fraction(1, to_time_base)
+
+    converted_time = time * from_time_base / to_time_base
+
+    return converted_time.numerator / converted_time.denominator
 
     # TODO: Vamp script makes separate audio and video, so the files from Zelda are like that
     #       - Why did we need that?
