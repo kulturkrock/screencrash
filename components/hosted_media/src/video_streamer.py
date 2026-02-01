@@ -107,7 +107,7 @@ class VideoStreamer:
 
             self._set_duration_and_broadcast_change(duration)
 
-            tmp_seeked = False
+            tmp_seeked = 0
 
             packet_iterator = input_container.demux()
             next_video_pts = None
@@ -122,9 +122,9 @@ class VideoStreamer:
                         packet.pts, packet.time_base, av.time_base
                     )
                     # tmp
-                    if not tmp_seeked and pts_in_av_time_base > 15_000_000:
-                        self._seek(10_000_000, input_container)
-                        tmp_seeked = True
+                    if tmp_seeked < 2 and pts_in_av_time_base > 3_587_260:
+                        self._seek(1_186_890, input_container)
+                        tmp_seeked += 1
                         continue
 
                     if packet.stream.type == "video":
