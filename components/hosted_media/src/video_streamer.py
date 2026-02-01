@@ -90,7 +90,7 @@ class VideoStreamer:
 
         out_video_stream = output_container.add_stream_from_template(in_video_stream)
         assert isinstance(out_video_stream, av.VideoStream)
-        out_audio_stream = output_container.add_stream_from_template(in_audio_stream)
+        out_audio_stream = output_container.add_stream("libopus", bit_rate=128_000)
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
 
@@ -116,7 +116,7 @@ class VideoStreamer:
             in_video_stream, in_audio_stream, duration = (
                 self._extract_from_input_container(input_container)
             )
-            out_video_stream, out_audio_stream = self._init_output_container(
+            _, out_audio_stream = self._init_output_container(
                 output_container, in_video_stream, in_audio_stream
             )
 
@@ -200,17 +200,23 @@ class VideoStreamer:
 
                     # If this is the first audio packet after looping, stitch it together with the one we saved
                     if partial_loop_end_packet is not None:
-                        # todo: stitch and replace packet
-                        out_packet = packet
+                        # todo: stitch packet
+                        frames = packet.decode()
+                        assert len(frames) == 1
+                        frame = typing.cast(av.AudioFrame, frames[0])
+                        out_packets = out_audio_stream.encode(frame)
                     else:
-                        # todo: re-encode packet
-                        out_packet = packet
+                        frames = packet.decode()
+                        assert len(frames) == 1
+                        frame = typing.cast(av.AudioFrame, frames[0])
+                        out_packets = out_audio_stream.encode(frame)
 
-                    if next_audio_timestamp is not None:
-                        out_packet.pts = next_audio_timestamp
-                        out_packet.dts = next_audio_timestamp
-                    next_audio_timestamp = out_packet.pts + out_packet.duration
-                    output_container.mux(out_packet)
+                    for out_packet in out_packets:
+                        if next_audio_timestamp is not None:
+                            out_packet.pts = next_audio_timestamp
+                            out_packet.dts = next_audio_timestamp
+                        next_audio_timestamp = out_packet.pts + out_packet.duration
+                        output_container.mux(out_packet)
             self.done = True
 
     def stop(self) -> None:
