@@ -2,6 +2,7 @@ from pathlib import Path
 import tempfile
 from collections.abc import Callable
 from fractions import Fraction
+from datetime import datetime
 
 import asyncio
 import av
@@ -25,7 +26,9 @@ class VideoStreamer:
         self.duration: float | None = None
 
     def start(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory()
+        self.temp_dir = tempfile.TemporaryDirectory(
+            prefix=f"screencrash-video-{datetime.now().isoformat()}-"
+        )
         self.output_video_file_path = Path(self.temp_dir.name) / (
             "out" + self.input_video_file_path.suffix
         )
