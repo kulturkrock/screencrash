@@ -72,11 +72,13 @@ class VideoStreamer:
     def _init_output_container(
         self,
         output_container: av.container.OutputContainer,
+        in_video_stream: av.VideoStream,
+        in_audio_stream: av.AudioStream,
     ) -> tuple[av.VideoStream, av.AudioStream]:
 
-        out_video_stream = output_container.add_stream("vp9")
+        out_video_stream = output_container.add_stream_from_template(in_video_stream)
         assert isinstance(out_video_stream, av.VideoStream)
-        out_audio_stream = output_container.add_stream("opus")
+        out_audio_stream = output_container.add_stream_from_template(in_audio_stream)
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
 
@@ -89,24 +91,17 @@ class VideoStreamer:
                 self.output_video_file_path, "w", format="webm"
             ) as output_container,
         ):
-            _, _, duration = self._extract_from_input_container(input_container)
+            in_video_stream, in_audio_stream, duration = (
+                self._extract_from_input_container(input_container)
+            )
             out_video_stream, out_audio_stream = self._init_output_container(
-                output_container
+                output_container, in_video_stream, in_audio_stream
             )
 
             self._set_duration_and_broadcast_change(duration)
 
-            for in_packet in input_container.demux():
-                for frame in in_packet.decode():
-                    frame = cast(
-                        av.VideoFrame | av.AudioFrame, frame
-                    )  # type hints from pyav claim it's a SubtitleSet, but that's not true
-                    if isinstance(frame, av.VideoFrame):
-                        out_packets = out_video_stream.encode(frame)
-                        output_container.mux(out_packets)
-                    elif isinstance(frame, av.AudioFrame):
-                        out_packets = out_audio_stream.encode(frame)
-                        output_container.mux(out_packets)
+            for packet in input_container.demux():
+                output_container.mux(packet)
             self.done = True
 
     def stop(self) -> None:
