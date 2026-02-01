@@ -3,10 +3,11 @@ import tempfile
 from collections.abc import Callable
 from fractions import Fraction
 from datetime import datetime
-
+import typing
 import asyncio
 import av
 import av.container
+import av.codec
 
 # This makes some assumptions about the video file:
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
@@ -14,6 +15,8 @@ import av.container
 #    video frames can be dropped until then
 # 3. The codecs are allowed in webm
 # 4. Audio packets generally have the same duration
+# 5. Audio packets have only one audio frame
+# 6. The audio codec does not use keyframes
 # You can create a file that matches this by:
 # ffmpeg -i filename.mp4 -c:v vp9 -c:a libopus -force_key_frames 00:00:01.256590,00:00:27.098200 filename.webm
 # (Replace the timestamps of -force_key_frames with your loop starts)
@@ -91,38 +94,6 @@ class VideoStreamer:
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
 
-    def _seek(
-        self,
-        timestamp_in_av_time_base: int,
-        input_container: av.container.InputContainer,
-        seek_from_in_av_time_base: int,
-        packet_before_cut: av.Packet,
-    ) -> list[av.Packet]:
-        if packet_before_cut.duration is None:
-            raise RuntimeError(
-                "Packet duration is None"
-            )  # Should not be able to happen here
-        time_before_wanted = timestamp_in_av_time_base - _convert_time_base(
-            packet_before_cut.duration, packet_before_cut.time_base, av.time_base
-        )
-        input_container.seek(time_before_wanted, any_frame=True)
-        packets = []
-        for packet in input_container.demux():
-            if not _timestamp_in_packet(timestamp_in_av_time_base, packet):
-                continue  # Drop packets until we reach the timestamp
-            if packet.stream.type == "video":
-                packets.append(
-                    packet
-                )  # In case the first packet after the seek is video
-            elif packet.stream.type == "audio":
-                stitched_packet = packet
-
-                packets.append(stitched_packet)
-                break
-            else:
-                continue
-        return packets
-
         # We are now on a keyframe before the position we wanted to seek to
         # Sketch:
         # - Assume forced keyframe after timestamp
@@ -155,52 +126,91 @@ class VideoStreamer:
             tmp_seeked_2 = 0
 
             packet_iterator = input_container.demux()
-            next_video_pts = None
-            next_audio_pts = None
+            next_video_timestamp = None
+            next_audio_timestamp = None
             drop_video_until_keyframe = False
+            looping_to = None
+            looping_from = None
+            partial_loop_end_packet = None
             while True:
                 try:
                     packet = next(packet_iterator)
                 except StopIteration:  # End of file
                     break
 
-                if packet.pts is None:  # Dummy packet, just pass it through
+                # After looping, we may be too early and should drop packets
+                if looping_to is not None:
+                    if _timestamp_in_packet(looping_to, packet):
+                        looping_to = None
+                    else:
+                        continue
+
+                # Dummy packet, just pass it through
+                if packet.pts is None:
+                    output_container.mux(packet)
+                    continue
+                if packet.duration is None:
+                    # If it's not a dummy, duration shouldn't be None
+                    raise RuntimeError("Packet duration is None")
+
+                # Video packet, modify timestamp and pass through
+                # Or drop, if we're waiting for a keyframe after seeking
+                if packet.stream.type == "video":
+                    if next_video_timestamp is not None:
+                        packet.pts = next_video_timestamp
+                        packet.dts = next_video_timestamp
+                    next_video_timestamp = packet.pts + packet.duration
+                    if packet.is_keyframe:
+                        drop_video_until_keyframe = False
+                    if drop_video_until_keyframe:
+                        continue  # Drop the frame, but still calculate next_video_pts
                     output_container.mux(packet)
                     continue
 
-                # tmp
-                if tmp_seeked_1 < 2 and _timestamp_in_packet(3_656_530, packet):
-                    packets = self._seek(1_256_590, input_container, 3_656_530, packet)
-                    drop_video_until_keyframe = True
-                    tmp_seeked_1 += 1
-                elif tmp_seeked_2 < 2 and _timestamp_in_packet(32_848_450, packet):
-                    packets = self._seek(
-                        27_098_200, input_container, 32_848_450, packet
-                    )
-                    drop_video_until_keyframe = True
-                    tmp_seeked_2 += 1
-                else:
-                    packets = [packet]
+                # Audio packet, re-encode so we can stitch them together when seeking/looping
+                if packet.stream.type == "audio":
+                    # Loop if we're supposed to
+                    # tmp implementation
+                    if tmp_seeked_1 < 2 and _timestamp_in_packet(3_656_530, packet):
+                        looping_to = 1_256_590
+                        looping_from = 3_656_530
+                        partial_loop_end_packet = packet
+                        packet_duration = _convert_time_base(
+                            packet.duration, packet.time_base, av.time_base
+                        )
+                        input_container.seek(
+                            looping_to - 5 * packet_duration
+                        )  # To have some margin
+                        drop_video_until_keyframe = True
+                        tmp_seeked_1 += 1
+                        continue
+                    elif tmp_seeked_2 < 2 and _timestamp_in_packet(32_848_450, packet):
+                        looping_to = 27_098_200
+                        looping_from = 32_848_450
+                        partial_loop_end_packet = packet
+                        packet_duration = _convert_time_base(
+                            packet.duration, packet.time_base, av.time_base
+                        )
+                        input_container.seek(
+                            looping_to - 5 * packet_duration
+                        )  # To have some margin
+                        drop_video_until_keyframe = True
+                        tmp_seeked_2 += 1
+                        continue
 
-                for packet in packets:
-                    if packet.stream.type == "video":
-                        if next_video_pts is not None:
-                            packet.pts = next_video_pts
-                            packet.dts = next_video_pts
-                        next_video_pts = packet.pts + packet.duration
-                        if packet.is_keyframe:
-                            drop_video_until_keyframe = False
-                        if drop_video_until_keyframe:
-                            continue  # Drop the frame, but still calculate next_video_pts
-                    elif packet.stream.type == "audio":
-                        pass
-                        if next_audio_pts is not None:
-                            packet.pts = next_audio_pts
-                            packet.dts = next_audio_pts
-                        next_audio_pts = packet.pts + packet.duration
+                    # If this is the first audio packet after looping, stitch it together with the one we saved
+                    if partial_loop_end_packet is not None:
+                        # todo: stitch and replace packet
+                        out_packet = packet
                     else:
-                        continue  # Discard all other packets
-                    output_container.mux(packet)
+                        # todo: re-encode packet
+                        out_packet = packet
+
+                    if next_audio_timestamp is not None:
+                        out_packet.pts = next_audio_timestamp
+                        out_packet.dts = next_audio_timestamp
+                    next_audio_timestamp = out_packet.pts + out_packet.duration
+                    output_container.mux(out_packet)
             self.done = True
 
     def stop(self) -> None:
