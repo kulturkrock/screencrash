@@ -82,6 +82,13 @@ class VideoStreamer:
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
 
+    def _seek(
+        self,
+        timestamp_in_av_time_base: int,
+        input_container: av.container.InputContainer,
+    ) -> None:
+        input_container.seek(timestamp_in_av_time_base)
+
     async def _stream(self) -> None:
         if self.output_video_file_path is None:
             raise RuntimeError("VideoStreamer never started")
@@ -100,7 +107,37 @@ class VideoStreamer:
 
             self._set_duration_and_broadcast_change(duration)
 
-            for packet in input_container.demux():
+            tmp_seeked = False
+
+            packet_iterator = input_container.demux()
+            next_video_pts = None
+            next_audio_pts = None
+            while True:
+                try:
+                    packet = next(packet_iterator)
+                except StopIteration:
+                    break
+                if packet.pts is not None:
+                    pts_in_av_time_base = _convert_time_base(
+                        packet.pts, packet.time_base, av.time_base
+                    )
+                    # tmp
+                    if not tmp_seeked and pts_in_av_time_base > 15_000_000:
+                        self._seek(10_000_000, input_container)
+                        tmp_seeked = True
+                        continue
+
+                    if packet.stream.type == "video":
+                        if next_video_pts is not None:
+                            packet.pts = next_video_pts
+                            packet.dts = next_video_pts
+                        next_video_pts = packet.pts + packet.duration
+                    elif packet.stream.type == "audio":
+                        pass
+                        if next_audio_pts is not None:
+                            packet.pts = next_audio_pts
+                            packet.dts = next_audio_pts
+                        next_audio_pts = packet.pts + packet.duration
                 output_container.mux(packet)
             self.done = True
 
