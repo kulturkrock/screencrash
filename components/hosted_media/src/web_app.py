@@ -52,12 +52,14 @@ class RequestHandler:
             await response.prepare(request)
 
             async with aiofiles.open(streamer.get_output_file(), "rb") as f:
-                while not streamer.is_done():
+                while True:
                     chunk = await f.read(1000)
                     if len(chunk) > 0:
                         await response.write(chunk)
-                    else:
+                    elif not streamer.is_done():
                         await asyncio.sleep(1)
+                    else:
+                        break
 
             await response.write_eof()
         except ClientConnectionResetError:

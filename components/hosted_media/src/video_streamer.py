@@ -2,13 +2,11 @@ from pathlib import Path
 import tempfile
 from collections.abc import Callable
 from fractions import Fraction
-import matplotlib.pyplot as plt
-import numpy as np
+
 import asyncio
 import av
 import av.container
-import av.subtitles.stream
-import av.packet
+from typing import cast
 
 
 class VideoStreamer:
@@ -25,8 +23,6 @@ class VideoStreamer:
         self.output_video_file_path = None
         self.done = False
         self.duration: float | None = None
-        self.latest_audio_time = 0  # in av.time_base
-        self.latest_audio_duration = 0
 
     def start(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()
@@ -42,87 +38,73 @@ class VideoStreamer:
         return self.duration
 
     def get_position(self) -> float:
-        return self.latest_audio_time / av.time_base
+        return 0
 
-    def _init_from_input_container(
-        self,
-        input_container: av.container.InputContainer,
-        output_container: av.container.OutputContainer,
-    ) -> dict[int, int]:
+    def _extract_from_input_container(
+        self, input_container: av.container.InputContainer
+    ) -> tuple[av.VideoStream, av.AudioStream, int]:
+
+        if len(input_container.streams.video) != 1:
+            raise RuntimeError(
+                f"Expected 1 video stream, found {len(input_container.streams.video)}"
+            )
+        in_video_stream = input_container.streams.video[0]
+
+        if len(input_container.streams.audio) != 1:
+            raise RuntimeError(
+                f"Expected 1 audio stream, found {len(input_container.streams.audio)}"
+            )
+        in_audio_stream = input_container.streams.audio[0]
+
         if input_container.duration is None:
             raise RuntimeError("container.duration is None")
-        self.duration = input_container.duration / av.time_base
-        self.effect_changed_callback()  # To let people know the actual duration
-        stream_offset: dict[int, int] = {}
-        for stream in input_container.streams:
-            if (
-                isinstance(stream, av.VideoStream)
-                or isinstance(stream, av.AudioStream)
-                # We're not using subtitles, but since it's supported we may as well add it
-                or isinstance(stream, av.subtitles.stream.SubtitleStream)
-            ):
-                out_stream = output_container.add_stream_from_template(stream)
-                stream_offset[out_stream.index] = 0
-        return stream_offset
+        duration = input_container.duration
 
-    def _seek_exact(
-        self, time: int, input_container: av.container.InputContainer
-    ) -> int:
-        input_container.seek(time)
-        offset = 0  # self.latest_audio_time + self.latest_audio_duration - time
-        return offset
+        return in_video_stream, in_audio_stream, duration
+
+    def _set_duration_and_broadcast_change(self, duration_in_av_time_base: int):
+        self.duration = duration_in_av_time_base / av.time_base
+        self.effect_changed_callback()  # To let people know the actual duration
+
+    def _init_output_container(
+        self,
+        output_container: av.container.OutputContainer,
+    ) -> tuple[av.VideoStream, av.AudioStream]:
+
+        out_video_stream = output_container.add_stream("vp9")
+        assert isinstance(out_video_stream, av.VideoStream)
+        out_audio_stream = output_container.add_stream("opus")
+        assert isinstance(out_audio_stream, av.AudioStream)
+        return out_video_stream, out_audio_stream
 
     async def _stream(self) -> None:
         if self.output_video_file_path is None:
             raise RuntimeError("VideoStreamer never started")
-        with av.open(
-            self.output_video_file_path, "w", format="webm"
-        ) as output_container:
-            with av.open(self.input_video_file_path, "r") as input_container:
-                self._init_from_input_container(input_container, output_container)
-                offset = 0
-                all_audio_times = []
-                all_video_times = []
-                clip_start = 10_000_000
-                clip_end = 15_000_000
-                for _ in range(5):
-                    offset = self._seek_exact(clip_start, input_container)
+        with (
+            av.open(self.input_video_file_path, "r") as input_container,
+            av.open(
+                self.output_video_file_path, "w", format="webm"
+            ) as output_container,
+        ):
+            _, _, duration = self._extract_from_input_container(input_container)
+            out_video_stream, out_audio_stream = self._init_output_container(
+                output_container
+            )
 
-                    for packet in input_container.demux():
-                        if packet.pts is not None:
-                            if packet.duration is None:
-                                raise RuntimeError("packet.duration is None")
-                            if packet.dts is None:
-                                raise RuntimeError("packet.dts is None")
-                            packet.pts += _convert_time_base(
-                                offset, av.time_base, packet.time_base
-                            )
-                            packet.dts += _convert_time_base(
-                                offset, av.time_base, packet.time_base
-                            )
+            self._set_duration_and_broadcast_change(duration)
 
-                            if packet.stream.type == "audio":
-                                self.latest_audio_time = _convert_time_base(
-                                    packet.pts, packet.time_base, av.time_base
-                                )
-                                self.latest_audio_duration = _convert_time_base(
-                                    packet.duration, packet.time_base, av.time_base
-                                )
-                                all_audio_times.append(self.latest_audio_time)
-                                if self.latest_audio_time > clip_end:
-                                    output_container.mux(av.packet.Packet(input=None))
-                                    break
-                            if packet.stream.type == "video":
-                                latest_video_time = _convert_time_base(
-                                    packet.pts, packet.time_base, av.time_base
-                                )
-                                all_video_times.append(latest_video_time)
-
-                        output_container.mux(packet)
-
-                diffs = np.diff(all_audio_times)
-                plt.plot(range(len(diffs)), diffs)
-                plt.show()
+            for in_packet in input_container.demux():
+                for frame in in_packet.decode():
+                    frame = cast(
+                        av.VideoFrame | av.AudioFrame, frame
+                    )  # type hints from pyav claim it's a SubtitleSet, but that's not true
+                    if isinstance(frame, av.VideoFrame):
+                        out_packets = out_video_stream.encode(frame)
+                        output_container.mux(out_packets)
+                    elif isinstance(frame, av.AudioFrame):
+                        out_packets = out_audio_stream.encode(frame)
+                        output_container.mux(out_packets)
+            self.done = True
 
     def stop(self) -> None:
         if self.temp_dir is None:
