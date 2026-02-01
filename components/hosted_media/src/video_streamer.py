@@ -87,7 +87,16 @@ class VideoStreamer:
         timestamp_in_av_time_base: int,
         input_container: av.container.InputContainer,
     ) -> None:
-        input_container.seek(timestamp_in_av_time_base)
+        input_container.seek(timestamp_in_av_time_base, any_frame=True)
+        # We are now on a keyframe before the position we wanted to seek to
+        # Sketch:
+        # - Assume forced keyframe after timestamp
+        # - When we reach the packet *containing* the end time:
+        #   - Decode, truncate, shorten duration, encode, send
+        #   - Seek to time before start time
+        #   - Drop all packets until the one containing the start time
+        #   - Decode, truncate, shorten duration, encode, send
+        #   - Drop all video packets until we get a keyframe
 
     async def _stream(self) -> None:
         if self.output_video_file_path is None:
@@ -107,11 +116,13 @@ class VideoStreamer:
 
             self._set_duration_and_broadcast_change(duration)
 
-            tmp_seeked = 0
+            tmp_seeked_1 = 0
+            tmp_seeked_2 = 0
 
             packet_iterator = input_container.demux()
             next_video_pts = None
             next_audio_pts = None
+            drop_video_until_keyframe = False
             while True:
                 try:
                     packet = next(packet_iterator)
@@ -122,9 +133,15 @@ class VideoStreamer:
                         packet.pts, packet.time_base, av.time_base
                     )
                     # tmp
-                    if tmp_seeked < 2 and pts_in_av_time_base > 3_587_260:
-                        self._seek(1_186_890, input_container)
-                        tmp_seeked += 1
+                    if tmp_seeked_1 < 2 and pts_in_av_time_base > 3_656_530:
+                        self._seek(1_256_590, input_container)
+                        drop_video_until_keyframe = True
+                        tmp_seeked_1 += 1
+                        continue
+                    if tmp_seeked_2 < 2 and pts_in_av_time_base > 32_848_450:
+                        self._seek(27_098_200, input_container)
+                        drop_video_until_keyframe = True
+                        tmp_seeked_2 += 1
                         continue
 
                     if packet.stream.type == "video":
@@ -132,6 +149,10 @@ class VideoStreamer:
                             packet.pts = next_video_pts
                             packet.dts = next_video_pts
                         next_video_pts = packet.pts + packet.duration
+                        if packet.is_keyframe:
+                            drop_video_until_keyframe = False
+                        if drop_video_until_keyframe:
+                            continue  # Drop the frame, but still calculate next_video_pts
                     elif packet.stream.type == "audio":
                         pass
                         if next_audio_pts is not None:
