@@ -7,7 +7,16 @@ from datetime import datetime
 import asyncio
 import av
 import av.container
-from typing import cast
+
+# This makes some assumptions about the video file:
+# 1. The packets are ordered with nondecreasing timestamps, even across streams
+# 2. There is a keyframe after the start of each looping portion, soon enough that
+#    video frames can be dropped until then
+# 3. The codecs are allowed in webm
+# 4. Audio packets generally have the same duration
+# You can create a file that matches this by:
+# ffmpeg -i filename.mp4 -c:v vp9 -c:a libopus -force_key_frames 00:00:01.256590,00:00:27.098200 filename.webm
+# (Replace the timestamps of -force_key_frames with your loop starts)
 
 
 class VideoStreamer:
@@ -86,8 +95,34 @@ class VideoStreamer:
         self,
         timestamp_in_av_time_base: int,
         input_container: av.container.InputContainer,
-    ) -> None:
-        input_container.seek(timestamp_in_av_time_base, any_frame=True)
+        seek_from_in_av_time_base: int,
+        packet_before_cut: av.Packet,
+    ) -> list[av.Packet]:
+        if packet_before_cut.duration is None:
+            raise RuntimeError(
+                "Packet duration is None"
+            )  # Should not be able to happen here
+        time_before_wanted = timestamp_in_av_time_base - _convert_time_base(
+            packet_before_cut.duration, packet_before_cut.time_base, av.time_base
+        )
+        input_container.seek(time_before_wanted, any_frame=True)
+        packets = []
+        for packet in input_container.demux():
+            if not _timestamp_in_packet(timestamp_in_av_time_base, packet):
+                continue  # Drop packets until we reach the timestamp
+            if packet.stream.type == "video":
+                packets.append(
+                    packet
+                )  # In case the first packet after the seek is video
+            elif packet.stream.type == "audio":
+                stitched_packet = packet
+
+                packets.append(stitched_packet)
+                break
+            else:
+                continue
+        return packets
+
         # We are now on a keyframe before the position we wanted to seek to
         # Sketch:
         # - Assume forced keyframe after timestamp
@@ -126,24 +161,28 @@ class VideoStreamer:
             while True:
                 try:
                     packet = next(packet_iterator)
-                except StopIteration:
+                except StopIteration:  # End of file
                     break
-                if packet.pts is not None:
-                    pts_in_av_time_base = _convert_time_base_inexact(
-                        packet.pts, packet.time_base, av.time_base
-                    )
-                    # tmp
-                    if tmp_seeked_1 < 2 and pts_in_av_time_base > 3_656_530:
-                        self._seek(1_256_590, input_container)
-                        drop_video_until_keyframe = True
-                        tmp_seeked_1 += 1
-                        continue
-                    if tmp_seeked_2 < 2 and pts_in_av_time_base > 32_848_450:
-                        self._seek(27_098_200, input_container)
-                        drop_video_until_keyframe = True
-                        tmp_seeked_2 += 1
-                        continue
 
+                if packet.pts is None:  # Dummy packet, just pass it through
+                    output_container.mux(packet)
+                    continue
+
+                # tmp
+                if tmp_seeked_1 < 2 and _timestamp_in_packet(3_656_530, packet):
+                    packets = self._seek(1_256_590, input_container, 3_656_530, packet)
+                    drop_video_until_keyframe = True
+                    tmp_seeked_1 += 1
+                elif tmp_seeked_2 < 2 and _timestamp_in_packet(32_848_450, packet):
+                    packets = self._seek(
+                        27_098_200, input_container, 32_848_450, packet
+                    )
+                    drop_video_until_keyframe = True
+                    tmp_seeked_2 += 1
+                else:
+                    packets = [packet]
+
+                for packet in packets:
                     if packet.stream.type == "video":
                         if next_video_pts is not None:
                             packet.pts = next_video_pts
@@ -161,7 +200,7 @@ class VideoStreamer:
                         next_audio_pts = packet.pts + packet.duration
                     else:
                         continue  # Discard all other packets
-                output_container.mux(packet)
+                    output_container.mux(packet)
             self.done = True
 
     def stop(self) -> None:
@@ -200,6 +239,20 @@ def _convert_time_base(
         raise RuntimeError(
             f"Cannot convert from time base {from_time_base} to {to_time_base}"
         )
+
+
+def _timestamp_in_packet(timestamp_in_av_time_base: int, packet: av.Packet) -> bool:
+    if packet.pts is None:
+        return False  # Dummy packet
+    if packet.duration is None:
+        raise RuntimeError("Packet has no duration")
+    timestamp_in_packet_time_base = _convert_time_base_inexact(
+        timestamp_in_av_time_base, av.time_base, packet.time_base
+    )
+    return (
+        timestamp_in_packet_time_base >= packet.pts
+        and timestamp_in_packet_time_base < packet.pts + packet.duration
+    )
 
 
 def _convert_time_base_inexact(
