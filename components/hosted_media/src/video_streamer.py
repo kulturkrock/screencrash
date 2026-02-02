@@ -7,7 +7,9 @@ import typing
 import asyncio
 import av
 import av.container
-import av.codec
+import numpy
+import math
+
 
 # This makes some assumptions about the video file:
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
@@ -90,7 +92,10 @@ class VideoStreamer:
 
         out_video_stream = output_container.add_stream_from_template(in_video_stream)
         assert isinstance(out_video_stream, av.VideoStream)
-        out_audio_stream = output_container.add_stream("libopus", bit_rate=128_000)
+        out_audio_stream = output_container.add_stream(
+            "libopus",
+            bit_rate=128_000,
+        )
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
 
@@ -140,9 +145,7 @@ class VideoStreamer:
 
                 # After looping, we may be too early and should drop packets
                 if looping_to is not None:
-                    if _timestamp_in_packet(looping_to, packet):
-                        looping_to = None
-                    else:
+                    if not _timestamp_in_packet(looping_to, packet):
                         continue
 
                 # Dummy packet, just pass it through
@@ -200,11 +203,71 @@ class VideoStreamer:
 
                     # If this is the first audio packet after looping, stitch it together with the one we saved
                     if partial_loop_end_packet is not None:
-                        # todo: stitch packet
-                        frames = packet.decode()
-                        assert len(frames) == 1
-                        frame = typing.cast(av.AudioFrame, frames[0])
+                        assert looping_from is not None
+                        assert looping_to is not None
+                        loop_start_frames = packet.decode()
+                        assert len(loop_start_frames) == 1
+                        loop_start_frame = typing.cast(
+                            av.AudioFrame, loop_start_frames[0]
+                        )
+                        assert loop_start_frame.pts is not None
+                        assert loop_start_frame.time_base is not None
+                        loop_start_array = loop_start_frame.to_ndarray()
+
+                        loop_end_frames = partial_loop_end_packet.decode()
+                        assert len(loop_end_frames) == 1
+                        loop_end_frame = typing.cast(av.AudioFrame, loop_end_frames[0])
+                        assert loop_end_frame.pts is not None
+                        assert loop_end_frame.time_base is not None
+                        loop_end_array = loop_end_frame.to_ndarray()
+
+                        sample_duration = av.time_base / loop_end_frame.sample_rate
+                        end_array_cutoff_index = math.floor(
+                            (
+                                looping_from
+                                - _convert_time_base(
+                                    loop_end_frame.pts,
+                                    loop_end_frame.time_base,
+                                    av.time_base,
+                                )
+                            )
+                            / sample_duration
+                        )
+
+                        start_array_cutoff_index = math.ceil(
+                            (
+                                looping_to
+                                - _convert_time_base(
+                                    loop_start_frame.pts,
+                                    loop_start_frame.time_base,
+                                    av.time_base,
+                                )
+                            )
+                            / sample_duration
+                        )
+                        stitched_array = numpy.concatenate(
+                            [
+                                loop_end_array[:, :end_array_cutoff_index],
+                                loop_start_array[:, start_array_cutoff_index:],
+                            ],
+                            axis=1,
+                            dtype=loop_end_array.dtype,
+                        )
+                        frame = av.AudioFrame.from_ndarray(
+                            stitched_array,
+                            # loop_end_array,
+                            format=loop_end_frame.format.name,
+                        )
+                        frame.pts = (
+                            loop_start_frame.pts
+                        )  # Will be overwritten, but maybe needed for encode()?
+                        frame.sample_rate = loop_end_frame.sample_rate
+                        frame.time_base = loop_end_frame.time_base
+
                         out_packets = out_audio_stream.encode(frame)
+                        looping_to = None
+                        partial_loop_end_packet = None
+                        looping_from = None
                     else:
                         frames = packet.decode()
                         assert len(frames) == 1
