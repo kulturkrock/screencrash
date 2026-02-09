@@ -9,7 +9,9 @@ import av
 import av.container
 import numpy
 import math
-
+from matplotlib import pyplot
+import av.audio.resampler
+import av.audio.frame
 
 # This makes some assumptions about the video file:
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
@@ -19,8 +21,11 @@ import math
 # 4. Audio packets generally have the same duration
 # 5. Audio packets have only one audio frame
 # 6. The audio codec does not use keyframes
+# 7. The audio codec is lossless
 # You can create a file that matches this by:
-# ffmpeg -i filename.mp4 -c:v vp9 -c:a libopus -force_key_frames 00:00:01.256590,00:00:27.098200 filename.webm
+# ffmpeg -i filename.mp4 -c:v vp9 -c:a flac filename_nokeyframe.mp4
+# Open in audacity, find very exact timestamps to loop
+# ffmpeg -i filename_nokeyframe.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212920,00:00:27.054200 filename_keyframe.mp4
 # (Replace the timestamps of -force_key_frames with your loop starts)
 
 
@@ -93,8 +98,8 @@ class VideoStreamer:
         out_video_stream = output_container.add_stream_from_template(in_video_stream)
         assert isinstance(out_video_stream, av.VideoStream)
         out_audio_stream = output_container.add_stream(
-            "libopus",
-            bit_rate=128_000,
+            "flac",
+            # bit_rate=128_000,
         )
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_video_stream, out_audio_stream
@@ -114,9 +119,7 @@ class VideoStreamer:
             raise RuntimeError("VideoStreamer never started")
         with (
             av.open(self.input_video_file_path, "r") as input_container,
-            av.open(
-                self.output_video_file_path, "w", format="webm"
-            ) as output_container,
+            av.open(self.output_video_file_path, "w", format="mp4") as output_container,
         ):
             in_video_stream, in_audio_stream, duration = (
                 self._extract_from_input_container(input_container)
@@ -134,8 +137,8 @@ class VideoStreamer:
             next_video_timestamp = None
             next_audio_timestamp = None
             drop_video_until_keyframe = False
-            looping_to = None
-            looping_from = None
+            jumping_to = None
+            jumping_from = None
             partial_loop_end_packet = None
             while True:
                 try:
@@ -144,8 +147,8 @@ class VideoStreamer:
                     break
 
                 # After looping, we may be too early and should drop packets
-                if looping_to is not None:
-                    if not _timestamp_in_packet(looping_to, packet):
+                if jumping_to is not None:
+                    if not _timestamp_in_packet(jumping_to, packet):
                         continue
 
                 # Dummy packet, just pass it through
@@ -174,28 +177,36 @@ class VideoStreamer:
                 if packet.stream.type == "audio":
                     # Loop if we're supposed to
                     # tmp implementation
-                    if tmp_seeked_1 < 2 and _timestamp_in_packet(3_656_530, packet):
-                        looping_to = 1_256_590
-                        looping_from = 3_656_530
+                    loop_1_start = 1_212_720
+                    loop_1_end = 3_612_920
+
+                    loop_2_start = 27_054_200
+                    loop_2_end = 32_793_060
+                    if tmp_seeked_1 < 5 and _timestamp_in_packet(loop_1_end, packet):
+                        jumping_to = loop_1_start
+                        jumping_from = loop_1_end
                         partial_loop_end_packet = packet
                         packet_duration = _convert_time_base(
                             packet.duration, packet.time_base, av.time_base
                         )
-                        input_container.seek(
-                            looping_to - 5 * packet_duration
+                        seek_to = (
+                            jumping_to - 5 * packet_duration
                         )  # To have some margin
+                        if seek_to < -7000:
+                            seek_to = -7000
+                        input_container.seek(seek_to, any_frame=True)
                         drop_video_until_keyframe = True
                         tmp_seeked_1 += 1
                         continue
-                    elif tmp_seeked_2 < 2 and _timestamp_in_packet(32_848_450, packet):
-                        looping_to = 27_098_200
-                        looping_from = 32_848_450
+                    elif tmp_seeked_2 < 5 and _timestamp_in_packet(loop_2_end, packet):
+                        jumping_to = loop_2_start
+                        jumping_from = loop_2_end
                         partial_loop_end_packet = packet
                         packet_duration = _convert_time_base(
                             packet.duration, packet.time_base, av.time_base
                         )
                         input_container.seek(
-                            looping_to - 5 * packet_duration
+                            jumping_to - 5 * packet_duration
                         )  # To have some margin
                         drop_video_until_keyframe = True
                         tmp_seeked_2 += 1
@@ -203,28 +214,79 @@ class VideoStreamer:
 
                     # If this is the first audio packet after looping, stitch it together with the one we saved
                     if partial_loop_end_packet is not None:
-                        assert looping_from is not None
-                        assert looping_to is not None
+                        assert jumping_from is not None
+                        assert jumping_to is not None
                         loop_start_frames = packet.decode()
                         assert len(loop_start_frames) == 1
-                        loop_start_frame = typing.cast(
+                        loop_start_frame_interleaved = typing.cast(
                             av.AudioFrame, loop_start_frames[0]
                         )
+                        resampler = av.audio.resampler.AudioResampler("s32p", "stereo")
+                        resampled_frames = resampler.resample(
+                            loop_start_frame_interleaved
+                        )
+                        assert len(resampled_frames) == 1
+                        loop_start_frame = resampled_frames[0]
                         assert loop_start_frame.pts is not None
                         assert loop_start_frame.time_base is not None
                         loop_start_array = loop_start_frame.to_ndarray()
 
                         loop_end_frames = partial_loop_end_packet.decode()
                         assert len(loop_end_frames) == 1
-                        loop_end_frame = typing.cast(av.AudioFrame, loop_end_frames[0])
+                        loop_end_frame_interleaved = typing.cast(
+                            av.AudioFrame, loop_end_frames[0]
+                        )
+                        resampled_frames = resampler.resample(
+                            loop_end_frame_interleaved
+                        )
+                        assert len(resampled_frames) == 1
+                        loop_end_frame = resampled_frames[0]
                         assert loop_end_frame.pts is not None
                         assert loop_end_frame.time_base is not None
                         loop_end_array = loop_end_frame.to_ndarray()
 
+                        loop_start_timestamps = numpy.linspace(
+                            _convert_time_base(
+                                loop_start_frame.pts,
+                                loop_start_frame.time_base,
+                                av.time_base,
+                            ),
+                            _convert_time_base(
+                                loop_start_frame.pts,
+                                loop_start_frame.time_base,
+                                av.time_base,
+                            )
+                            + _convert_time_base(
+                                loop_start_frame.duration,
+                                loop_start_frame.time_base,
+                                av.time_base,
+                            ),
+                            loop_start_array.shape[1],
+                        )
+
+                        loop_end_timestamps = numpy.linspace(
+                            _convert_time_base(
+                                loop_end_frame.pts,
+                                loop_end_frame.time_base,
+                                av.time_base,
+                            ),
+                            _convert_time_base(
+                                loop_end_frame.pts,
+                                loop_end_frame.time_base,
+                                av.time_base,
+                            )
+                            + _convert_time_base(
+                                loop_end_frame.duration,
+                                loop_end_frame.time_base,
+                                av.time_base,
+                            ),
+                            loop_end_array.shape[1],
+                        )
+
                         sample_duration = av.time_base / loop_end_frame.sample_rate
                         end_array_cutoff_index = math.floor(
                             (
-                                looping_from
+                                jumping_from
                                 - _convert_time_base(
                                     loop_end_frame.pts,
                                     loop_end_frame.time_base,
@@ -236,7 +298,7 @@ class VideoStreamer:
 
                         start_array_cutoff_index = math.ceil(
                             (
-                                looping_to
+                                jumping_to
                                 - _convert_time_base(
                                     loop_start_frame.pts,
                                     loop_start_frame.time_base,
@@ -253,21 +315,70 @@ class VideoStreamer:
                             axis=1,
                             dtype=loop_end_array.dtype,
                         )
-                        frame = av.AudioFrame.from_ndarray(
-                            stitched_array,
-                            # loop_end_array,
+                        track = 0
+                        limit = 0.6
+                        pyplot.subplot(3, 1, 1)
+                        # pyplot.ylim(-limit, limit)
+                        pyplot.plot(
+                            range(stitched_array.shape[1])[:end_array_cutoff_index],
+                            stitched_array[track][:end_array_cutoff_index],
+                            "b.-",
+                        )
+                        pyplot.plot(
+                            range(stitched_array.shape[1])[end_array_cutoff_index:],
+                            stitched_array[track][end_array_cutoff_index:],
+                            "r.-",
+                        )
+                        pyplot.axhline(y=0, linewidth=1, color="k")
+                        pyplot.subplot(3, 1, 2)
+                        # pyplot.ylim(-limit, limit)
+                        pyplot.plot(
+                            loop_end_timestamps[:end_array_cutoff_index],
+                            loop_end_array[track][:end_array_cutoff_index],
+                            "b.-",
+                        )
+                        pyplot.plot(
+                            loop_end_timestamps[end_array_cutoff_index:],
+                            loop_end_array[track][end_array_cutoff_index:],
+                            "r.-",
+                        )
+                        pyplot.axhline(y=0, linewidth=1, color="k")
+                        pyplot.subplot(3, 1, 3)
+                        # pyplot.ylim(-limit, limit)
+                        pyplot.plot(
+                            loop_start_timestamps[start_array_cutoff_index:],
+                            loop_start_array[track][start_array_cutoff_index:],
+                            "b.-",
+                        )
+                        pyplot.plot(
+                            loop_start_timestamps[:start_array_cutoff_index],
+                            loop_start_array[track][:start_array_cutoff_index],
+                            "r.-",
+                        )
+                        pyplot.axhline(y=0, linewidth=1, color="k")
+                        # pyplot.show()
+
+                        stitched_frame = av.AudioFrame.from_ndarray(
+                            stitched_array,  # pyright: ignore -- We know it's a supported dtype since we got it from another frame
                             format=loop_end_frame.format.name,
                         )
-                        frame.pts = (
+                        stitched_frame.pts = (
                             loop_start_frame.pts
                         )  # Will be overwritten, but maybe needed for encode()?
-                        frame.sample_rate = loop_end_frame.sample_rate
-                        frame.time_base = loop_end_frame.time_base
+                        stitched_frame.sample_rate = loop_end_frame.sample_rate
+                        stitched_frame.time_base = loop_end_frame.time_base
 
-                        out_packets = out_audio_stream.encode(frame)
-                        looping_to = None
+                        resampler2 = av.audio.resampler.AudioResampler("s32", "stereo")
+                        resampled_frames = resampler2.resample(stitched_frame)
+                        assert len(resampled_frames) == 1
+                        stitched_frame_interleaved = resampled_frames[0]
+
+                        out_packets = out_audio_stream.encode(
+                            stitched_frame_interleaved
+                        )
+                        jumping_to = None
                         partial_loop_end_packet = None
-                        looping_from = None
+                        jumping_from = None
                     else:
                         frames = packet.decode()
                         assert len(frames) == 1
