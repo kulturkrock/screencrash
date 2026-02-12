@@ -129,23 +129,26 @@ class VideoStreamer:
             next_video_timestamp = None
             next_audio_timestamp = None
             jump_in_progress: _JumpInProgress | None = None
-            waiting_for_keyframe = False
+            waiting_for_video_keyframe = False
             # The loop will go on until we reach the end of the file.
             # Jumping back using input_container.seek() is safe during the loop.
             for packet in input_container.demux():
-
-                # After looping, we may be too early and should drop packets
-                if jump_in_progress is not None:
-                    if not _timestamp_in_packet(jump_in_progress.jumping_to, packet):
-                        continue
 
                 # Dummy packet, just pass it through
                 if packet.pts is None:
                     output_container.mux(packet)
                     continue
-                if packet.duration is None:
-                    # If it's not a dummy, duration shouldn't be None
-                    raise RuntimeError("Packet duration is None")
+
+                # After looping, we may be too early and should drop packets
+                if jump_in_progress is not None:
+                    if _packet_fully_before_timestamp(
+                        packet, jump_in_progress.jumping_to
+                    ):
+                        continue
+
+                assert (
+                    packet.duration is not None
+                )  # If it's not a dummy, duration shouldn't be None
 
                 # Video packet, modify timestamp and pass through
                 # Or drop, if we're waiting for a keyframe after seeking
@@ -154,18 +157,21 @@ class VideoStreamer:
                         packet.pts = next_video_timestamp
                         packet.dts = next_video_timestamp
                     next_video_timestamp = packet.pts + packet.duration
-                    if waiting_for_keyframe:
+                    if waiting_for_video_keyframe:
                         if not packet.is_keyframe:
                             continue  # Drop the frame, but still calculate next_video_pts
                         else:
-                            waiting_for_keyframe = False
+                            waiting_for_video_keyframe = False
                     output_container.mux(packet)
                     continue
 
                 # Audio packet, re-encode so we can stitch them together when seeking/looping
                 if packet.stream.type == "audio":
                     # Loop if we're supposed to
-                    if looping and _timestamp_in_packet(looping.loop_end, packet):
+                    if looping and not _packet_fully_before_timestamp(
+                        packet,
+                        looping.loop_end,
+                    ):
                         jump_in_progress = _JumpInProgress(
                             jumping_from=looping.loop_end,
                             jumping_to=looping.loop_start,
@@ -180,7 +186,7 @@ class VideoStreamer:
                         if seek_to < 0:
                             seek_to = 0
                         input_container.seek(seek_to, any_frame=True)
-                        waiting_for_keyframe = True
+                        waiting_for_video_keyframe = True
 
                         if looping.loops_left is not None:
                             looping.loops_left -= 1
@@ -344,33 +350,22 @@ def _convert_time_base(
         )
 
 
-def _timestamp_in_packet(timestamp_in_av_time_base: int, packet: av.Packet) -> bool:
-    if packet.pts is None:
-        return False  # Dummy packet
-    if packet.duration is None:
-        raise RuntimeError("Packet has no duration")
-    timestamp_in_packet_time_base = _convert_time_base_inexact(
-        timestamp_in_av_time_base, av.time_base, packet.time_base
+def _packet_fully_before_timestamp(
+    packet: av.Packet, timestamp_in_av_time_base: int
+) -> bool:
+    assert packet.pts is not None
+    assert packet.duration is not None
+    packet_pts_in_av_time_base = _convert_time_base(
+        packet.pts, packet.time_base, av.time_base
     )
+    packet_duration_in_av_time_base = _convert_time_base(
+        packet.duration, packet.time_base, av.time_base
+    )
+
     return (
-        timestamp_in_packet_time_base >= packet.pts
-        and timestamp_in_packet_time_base < packet.pts + packet.duration
+        packet_pts_in_av_time_base + packet_duration_in_av_time_base
+        <= timestamp_in_av_time_base
     )
-
-
-def _convert_time_base_inexact(
-    time: int, from_time_base: int | Fraction, to_time_base: int | Fraction
-) -> float:
-    # If a time_base is an int, assume it's av.time_base and convert it to the same form
-    # as other time_bases
-    if isinstance(from_time_base, int):
-        from_time_base = Fraction(1, from_time_base)
-    if isinstance(to_time_base, int):
-        to_time_base = Fraction(1, to_time_base)
-
-    converted_time = time * from_time_base / to_time_base
-
-    return converted_time.numerator / converted_time.denominator
 
     # TODO: Vamp script makes separate audio and video, so the files from Zelda are like that
     #       - Why did we need that?
