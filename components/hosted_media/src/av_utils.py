@@ -1,17 +1,12 @@
-from pathlib import Path
-import tempfile
-from collections.abc import Callable
-from fractions import Fraction
-from datetime import datetime
-import typing
-import asyncio
-import av
-import av.container
-import numpy
 import math
-from matplotlib import pyplot
+from fractions import Fraction
+
+import av
 import av.audio.resampler
-from dataclasses import dataclass
+import numpy
+from matplotlib import pyplot
+
+from util import assert_and_get_one
 
 
 def convert_to_av_time_base(time: int, from_time_base: Fraction) -> int:
@@ -40,30 +35,30 @@ def packet_fully_before_timestamp(
 
 
 def stitch_audio_frames(
-    first_frame_interleaved: av.AudioFrame,
-    second_frame_interleaved: av.AudioFrame,
-    first_frame_end: int,  # In av.time_base
-    second_frame_start: int,  # In av.time_base
+    first_frame: av.AudioFrame,
+    second_frame: av.AudioFrame,
+    first_frame_end_time: int,  # In av.time_base
+    second_frame_start_time: int,  # In av.time_base
 ) -> av.AudioFrame:
+    # First, resample the frames to get the left and right channels separately instead of interleaved
     planar_resampler = av.audio.resampler.AudioResampler("s32p", "stereo")
-    resampled_frames = planar_resampler.resample(second_frame_interleaved)
-    assert len(resampled_frames) == 1
-    second_frame = resampled_frames[0]
-    assert second_frame.pts is not None
-    assert second_frame.time_base is not None
-    second_frame_array = second_frame.to_ndarray()
 
-    resampled_frames = planar_resampler.resample(first_frame_interleaved)
-    assert len(resampled_frames) == 1
-    first_frame = resampled_frames[0]
+    first_frame = assert_and_get_one(planar_resampler.resample(first_frame))
     assert first_frame.pts is not None
     assert first_frame.time_base is not None
     first_frame_array = first_frame.to_ndarray()
 
+    second_frame = assert_and_get_one(planar_resampler.resample(second_frame))
+    assert second_frame.pts is not None
+    assert second_frame.time_base is not None
+    second_frame_array = second_frame.to_ndarray()
+
+    # Then, find where in the frames the timestamps are
     sample_duration = av.time_base / first_frame.sample_rate
+
     first_array_cutoff_index = math.floor(
         (
-            first_frame_end
+            first_frame_end_time
             - convert_to_av_time_base(
                 first_frame.pts,
                 first_frame.time_base,
@@ -71,10 +66,9 @@ def stitch_audio_frames(
         )
         / sample_duration
     )
-
     second_array_cutoff_index = math.ceil(
         (
-            second_frame_start
+            second_frame_start_time
             - convert_to_av_time_base(
                 second_frame.pts,
                 second_frame.time_base,
@@ -82,6 +76,8 @@ def stitch_audio_frames(
         )
         / sample_duration
     )
+
+    # Then, stitch the frames together
     stitched_array = numpy.concatenate(
         [
             first_frame_array[:, :first_array_cutoff_index],
@@ -105,16 +101,15 @@ def stitch_audio_frames(
         stitched_array,  # pyright: ignore -- We know it's a supported dtype since we got it from another frame
         format=first_frame.format.name,
     )
-    stitched_frame.pts = (
-        first_frame.pts
-    )  # Will be overwritten as the function is used at time of writing, but just to be safe
+    # pts will be overwritten as the function is used at time of writing, but just to be safe
+    stitched_frame.pts = first_frame.pts
     stitched_frame.sample_rate = first_frame.sample_rate
     stitched_frame.time_base = first_frame.time_base
 
+    # Last, resample the frame back to interleaved format
     interleaved_resampler = av.audio.resampler.AudioResampler("s32", "stereo")
-    resampled_frames = interleaved_resampler.resample(stitched_frame)
-    assert len(resampled_frames) == 1
-    frame = resampled_frames[0]
+    frame = assert_and_get_one(interleaved_resampler.resample(stitched_frame))
+
     return frame
 
 
