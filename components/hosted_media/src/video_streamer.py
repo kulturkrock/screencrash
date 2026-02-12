@@ -12,6 +12,11 @@ import math
 from matplotlib import pyplot
 import av.audio.resampler
 from dataclasses import dataclass
+from av_utils import (
+    convert_to_av_time_base,
+    packet_fully_before_timestamp,
+    stitch_audio_frames,
+)
 
 # This makes some assumptions about the video file:
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
@@ -141,7 +146,7 @@ class VideoStreamer:
 
                 # After looping, we may be too early and should drop packets
                 if jump_in_progress is not None:
-                    if _packet_fully_before_timestamp(
+                    if packet_fully_before_timestamp(
                         packet, jump_in_progress.jumping_to
                     ):
                         continue
@@ -168,7 +173,7 @@ class VideoStreamer:
                 # Audio packet, re-encode so we can stitch them together when seeking/looping
                 if packet.stream.type == "audio":
                     # Loop if we're supposed to
-                    if looping and not _packet_fully_before_timestamp(
+                    if looping and not packet_fully_before_timestamp(
                         packet,
                         looping.loop_end,
                     ):
@@ -177,8 +182,8 @@ class VideoStreamer:
                             jumping_to=looping.loop_start,
                             partial_loop_end_packet=packet,
                         )
-                        packet_duration = _convert_time_base(
-                            packet.duration, packet.time_base, av.time_base
+                        packet_duration = convert_to_av_time_base(
+                            packet.duration, packet.time_base
                         )
                         seek_to = (
                             jump_in_progress.jumping_to - 5 * packet_duration
@@ -201,108 +206,29 @@ class VideoStreamer:
                     if jump_in_progress:
                         loop_start_frames = packet.decode()
                         assert len(loop_start_frames) == 1
-                        loop_start_frame_interleaved = typing.cast(
+                        loop_start_frame = typing.cast(
                             av.AudioFrame, loop_start_frames[0]
                         )
-                        planar_resampler = av.audio.resampler.AudioResampler(
-                            "s32p", "stereo"
-                        )
-                        resampled_frames = planar_resampler.resample(
-                            loop_start_frame_interleaved
-                        )
-                        assert len(resampled_frames) == 1
-                        loop_start_frame = resampled_frames[0]
-                        assert loop_start_frame.pts is not None
-                        assert loop_start_frame.time_base is not None
-                        loop_start_array = loop_start_frame.to_ndarray()
-
                         loop_end_frames = (
                             jump_in_progress.partial_loop_end_packet.decode()
                         )
                         assert len(loop_end_frames) == 1
-                        loop_end_frame_interleaved = typing.cast(
-                            av.AudioFrame, loop_end_frames[0]
-                        )
-                        resampled_frames = planar_resampler.resample(
-                            loop_end_frame_interleaved
-                        )
-                        assert len(resampled_frames) == 1
-                        loop_end_frame = resampled_frames[0]
-                        assert loop_end_frame.pts is not None
-                        assert loop_end_frame.time_base is not None
-                        loop_end_array = loop_end_frame.to_ndarray()
+                        loop_end_frame = typing.cast(av.AudioFrame, loop_end_frames[0])
 
-                        sample_duration = av.time_base / loop_end_frame.sample_rate
-                        end_array_cutoff_index = math.floor(
-                            (
-                                jump_in_progress.jumping_from
-                                - _convert_time_base(
-                                    loop_end_frame.pts,
-                                    loop_end_frame.time_base,
-                                    av.time_base,
-                                )
-                            )
-                            / sample_duration
+                        frame = stitch_audio_frames(
+                            loop_end_frame,
+                            loop_start_frame,
+                            jump_in_progress.jumping_from,
+                            jump_in_progress.jumping_to,
                         )
 
-                        start_array_cutoff_index = math.ceil(
-                            (
-                                jump_in_progress.jumping_to
-                                - _convert_time_base(
-                                    loop_start_frame.pts,
-                                    loop_start_frame.time_base,
-                                    av.time_base,
-                                )
-                            )
-                            / sample_duration
-                        )
-                        stitched_array = numpy.concatenate(
-                            [
-                                loop_end_array[:, :end_array_cutoff_index],
-                                loop_start_array[:, start_array_cutoff_index:],
-                            ],
-                            axis=1,
-                            dtype=loop_end_array.dtype,
-                        )
-
-                        # _plot_stitched_packet(
-                        #     loop_start_frame,
-                        #     loop_end_frame,
-                        #     loop_start_array,
-                        #     loop_end_array,
-                        #     stitched_array,
-                        #     start_array_cutoff_index,
-                        #     end_array_cutoff_index,
-                        # )
-
-                        stitched_frame = av.AudioFrame.from_ndarray(
-                            stitched_array,  # pyright: ignore -- We know it's a supported dtype since we got it from another frame
-                            format=loop_end_frame.format.name,
-                        )
-                        stitched_frame.pts = (
-                            loop_start_frame.pts
-                        )  # Will be overwritten, but maybe needed for encode()?
-                        stitched_frame.sample_rate = loop_end_frame.sample_rate
-                        stitched_frame.time_base = loop_end_frame.time_base
-
-                        interleaved_resampler = av.audio.resampler.AudioResampler(
-                            "s32", "stereo"
-                        )
-                        resampled_frames = interleaved_resampler.resample(
-                            stitched_frame
-                        )
-                        assert len(resampled_frames) == 1
-                        stitched_frame_interleaved = resampled_frames[0]
-
-                        out_packets = out_audio_stream.encode(
-                            stitched_frame_interleaved
-                        )
                         jump_in_progress = None
                     else:
                         frames = packet.decode()
                         assert len(frames) == 1
                         frame = typing.cast(av.AudioFrame, frames[0])
-                        out_packets = out_audio_stream.encode(frame)
+
+                    out_packets = out_audio_stream.encode(frame)
 
                     for out_packet in out_packets:
                         if next_audio_timestamp is not None:
@@ -328,44 +254,6 @@ class VideoStreamer:
         if self.output_video_file_path is None:
             raise RuntimeError("VideoStreamer never started")
         return self.output_video_file_path
-
-
-def _convert_time_base(
-    time: int, from_time_base: int | Fraction, to_time_base: int | Fraction
-) -> int:
-    # If a time_base is an int, assume it's av.time_base and convert it to the same form
-    # as other time_bases
-    if isinstance(from_time_base, int):
-        from_time_base = Fraction(1, from_time_base)
-    if isinstance(to_time_base, int):
-        to_time_base = Fraction(1, to_time_base)
-
-    converted_time = time * from_time_base / to_time_base
-
-    if converted_time.is_integer():
-        return converted_time.numerator
-    else:
-        raise RuntimeError(
-            f"Cannot convert from time base {from_time_base} to {to_time_base}"
-        )
-
-
-def _packet_fully_before_timestamp(
-    packet: av.Packet, timestamp_in_av_time_base: int
-) -> bool:
-    assert packet.pts is not None
-    assert packet.duration is not None
-    packet_pts_in_av_time_base = _convert_time_base(
-        packet.pts, packet.time_base, av.time_base
-    )
-    packet_duration_in_av_time_base = _convert_time_base(
-        packet.duration, packet.time_base, av.time_base
-    )
-
-    return (
-        packet_pts_in_av_time_base + packet_duration_in_av_time_base
-        <= timestamp_in_av_time_base
-    )
 
     # TODO: Vamp script makes separate audio and video, so the files from Zelda are like that
     #       - Why did we need that?
@@ -426,97 +314,3 @@ def _packet_fully_before_timestamp(
     #   * Same thing, but the frames won't line up with the audio
     #   * We shorten the duration of the current frame, both before and after
     #   * Try re-encoding the video too, until the next keyframe. Test it on a weak laptop.
-
-
-def _plot_stitched_packet(
-    loop_start_frame: av.AudioFrame,
-    loop_end_frame: av.AudioFrame,
-    loop_start_array: numpy.ndarray,
-    loop_end_array: numpy.ndarray,
-    stitched_array: numpy.ndarray,
-    start_array_cutoff_index: int,
-    end_array_cutoff_index: int,
-):
-    assert loop_start_frame.pts is not None
-    assert loop_start_frame.time_base is not None
-    assert loop_end_frame.pts is not None
-    assert loop_end_frame.time_base is not None
-    loop_start_timestamps = numpy.linspace(
-        _convert_time_base(
-            loop_start_frame.pts,
-            loop_start_frame.time_base,
-            av.time_base,
-        ),
-        _convert_time_base(
-            loop_start_frame.pts,
-            loop_start_frame.time_base,
-            av.time_base,
-        )
-        + _convert_time_base(
-            loop_start_frame.duration,
-            loop_start_frame.time_base,
-            av.time_base,
-        ),
-        loop_start_array.shape[1],
-    )
-
-    loop_end_timestamps = numpy.linspace(
-        _convert_time_base(
-            loop_end_frame.pts,
-            loop_end_frame.time_base,
-            av.time_base,
-        ),
-        _convert_time_base(
-            loop_end_frame.pts,
-            loop_end_frame.time_base,
-            av.time_base,
-        )
-        + _convert_time_base(
-            loop_end_frame.duration,
-            loop_end_frame.time_base,
-            av.time_base,
-        ),
-        loop_end_array.shape[1],
-    )
-    track = 0
-    limit = 0.6
-    pyplot.subplot(3, 1, 1)
-    # pyplot.ylim(-limit, limit)
-    pyplot.plot(
-        range(stitched_array.shape[1])[:end_array_cutoff_index],
-        stitched_array[track][:end_array_cutoff_index],
-        "b.-",
-    )
-    pyplot.plot(
-        range(stitched_array.shape[1])[end_array_cutoff_index:],
-        stitched_array[track][end_array_cutoff_index:],
-        "r.-",
-    )
-    pyplot.axhline(y=0, linewidth=1, color="k")
-    pyplot.subplot(3, 1, 2)
-    # pyplot.ylim(-limit, limit)
-    pyplot.plot(
-        loop_end_timestamps[:end_array_cutoff_index],
-        loop_end_array[track][:end_array_cutoff_index],
-        "b.-",
-    )
-    pyplot.plot(
-        loop_end_timestamps[end_array_cutoff_index:],
-        loop_end_array[track][end_array_cutoff_index:],
-        "r.-",
-    )
-    pyplot.axhline(y=0, linewidth=1, color="k")
-    pyplot.subplot(3, 1, 3)
-    # pyplot.ylim(-limit, limit)
-    pyplot.plot(
-        loop_start_timestamps[start_array_cutoff_index:],
-        loop_start_array[track][start_array_cutoff_index:],
-        "b.-",
-    )
-    pyplot.plot(
-        loop_start_timestamps[:start_array_cutoff_index],
-        loop_start_array[track][:start_array_cutoff_index],
-        "r.-",
-    )
-    pyplot.axhline(y=0, linewidth=1, color="k")
-    pyplot.show()
