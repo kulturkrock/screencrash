@@ -30,7 +30,7 @@ from util import assert_and_get_one
 # You can create a file that matches this by:
 # ffmpeg -i input.mp4 -c:v vp9 -c:a flac tmp_nokeyframes.mp4
 # Open tmp_nokeyframes.mp4 in audacity, find very exact timestamps to loop
-# ffmpeg -i tmp_nokeyframes.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212920,00:00:27.054200 output.mp4
+# ffmpeg -i tmp_nokeyframes.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212720,00:00:27.054200 output.mp4
 # (Replace the timestamps of -force_key_frames with your loop start times)
 
 
