@@ -52,6 +52,7 @@ class _JumpInProgress:
 class _PlayingState:
     temp_dir: tempfile.TemporaryDirectory
     output_video_file_path: Path
+    output_audio_file_path: Path
     out_audio_stream: av.AudioStream
     input_container: av.container.InputContainer
     duration: float
@@ -95,16 +96,22 @@ class VideoStreamer:
         self.playing_state.temp_dir.cleanup()
         self.done = True
 
-    def get_mimetype(self) -> str:
-        return "video/webm"
+    def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
+        if stream_type == "video":
+            return "video/mp4"
+        else:
+            return "audio/flac"
 
     def is_done(self) -> bool:
         return self.done
 
-    def get_output_file(self) -> Path:
+    def get_output_file(self, stream_type: typing.Literal["audio", "video"]) -> Path:
         if self.playing_state is None:
             raise RuntimeError("VideoStreamer never started")
-        return self.playing_state.output_video_file_path
+        if stream_type == "video":
+            return self.playing_state.output_video_file_path
+        else:
+            return self.playing_state.output_audio_file_path
 
     def _broadcast_change(self) -> None:
         self.effect_changed_callback()
@@ -115,16 +122,24 @@ class VideoStreamer:
         )
         output_video_file_path = Path(temp_dir.name) / "out.mp4"
         output_video_file_path.touch()
+        output_audio_file_path = Path(temp_dir.name) / "out.flac"
+        output_audio_file_path.touch()
         with (
             av.open(self.input_video_file_path, "r") as input_container,
-            av.open(output_video_file_path, "w", format="mp4") as output_container,
+            av.open(
+                output_video_file_path, "w", format="mp4"
+            ) as output_video_container,
+            av.open(
+                output_audio_file_path, "w", format="flac"
+            ) as output_audio_container,
         ):
             out_audio_stream, duration = self._init_containers_and_state(
-                input_container, output_container
+                input_container, output_video_container, output_audio_container
             )
             self.playing_state = _PlayingState(
                 temp_dir=temp_dir,
                 output_video_file_path=output_video_file_path,
+                output_audio_file_path=output_audio_file_path,
                 out_audio_stream=out_audio_stream,
                 input_container=input_container,
                 duration=duration / av.time_base,
@@ -140,16 +155,17 @@ class VideoStreamer:
             for packet in input_container.demux():
 
                 if packet.stream.type == "video":
-                    self._handle_video_packet(packet, output_container)
+                    self._handle_video_packet(packet, output_video_container)
                 elif packet.stream.type == "audio":
-                    self._handle_audio_packet(packet, output_container)
+                    self._handle_audio_packet(packet, output_audio_container)
             # Reached the end of the file
             self.done = True
 
     def _init_containers_and_state(
         self,
         input_container: av.container.InputContainer,
-        output_container: av.container.OutputContainer,
+        output_video_container: av.container.OutputContainer,
+        output_audio_container: av.container.OutputContainer,
     ) -> tuple[av.AudioStream, int]:
         if len(input_container.streams.video) != 1:
             raise RuntimeError(
@@ -161,8 +177,8 @@ class VideoStreamer:
             raise RuntimeError("container.duration is None")
         duration = input_container.duration
 
-        output_container.add_stream_from_template(in_video_stream)
-        out_audio_stream = output_container.add_stream("flac")
+        output_video_container.add_stream_from_template(in_video_stream)
+        out_audio_stream = output_audio_container.add_stream("flac")
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_audio_stream, duration
 

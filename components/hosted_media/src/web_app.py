@@ -40,18 +40,25 @@ class RequestHandler:
 
     async def stream(self, request: web.Request):
         try:
-            streamer = self.video_streamers[request.match_info["stream_id"]]
+            stream_id = request.match_info["stream_id"]
+            stream_type = request.match_info["stream_type"]
+        except KeyError:
+            return web.Response(status=400)
+        if not (stream_type == "audio" or stream_type == "video"):
+            return web.Response(status=400)
+        try:
+            streamer = self.video_streamers[stream_id]
         except KeyError:
             return web.Response(status=404)
         response = web.StreamResponse(
             headers={
-                "Content-Type": streamer.get_mimetype(),
+                "Content-Type": streamer.get_mimetype(stream_type),
             }
         )
         try:
             await response.prepare(request)
 
-            async with aiofiles.open(streamer.get_output_file(), "rb") as f:
+            async with aiofiles.open(streamer.get_output_file(stream_type), "rb") as f:
                 while True:
                     chunk = await f.read(1000)
                     if len(chunk) > 0:
@@ -87,7 +94,7 @@ def get_app(entity_manager: EntityManager, asset_dir: Path):
             web.static("/static", Path(__file__).parent / "static"),
             web.static("/assets", asset_dir, show_index=True),
             web.get("/api/subscribe", request_handler.subscribe),
-            web.get("/api/stream/{stream_id}", request_handler.stream),
+            web.get("/api/stream/{stream_id}/{stream_type}", request_handler.stream),
         ]
     )
     return app
