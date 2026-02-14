@@ -20,7 +20,7 @@ from util import assert_and_get_one
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
 # 2. There is a keyframe after the start of each looping portion, soon enough that
 #    video frames can be dropped until then
-# 3. The video codec is allowed in mp4
+# 3. The video codec is allowed in webm
 # 4. Audio packets have only one audio frame
 # 5. The audio codec does not use keyframes
 # 6. The audio codec is lossless (or at least FFmpeg's decoder does not have state)
@@ -98,7 +98,7 @@ class VideoStreamer:
 
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
         if stream_type == "video":
-            return "video/mp4"
+            return "video/webm"
         else:
             return "audio/flac"
 
@@ -120,14 +120,14 @@ class VideoStreamer:
         temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now().isoformat()}-"
         )
-        output_video_file_path = Path(temp_dir.name) / "out.mp4"
+        output_video_file_path = Path(temp_dir.name) / "out.webm"
         output_video_file_path.touch()
         output_audio_file_path = Path(temp_dir.name) / "out.flac"
         output_audio_file_path.touch()
         with (
             av.open(self.input_video_file_path, "r") as input_container,
             av.open(
-                output_video_file_path, "w", format="mp4"
+                output_video_file_path, "w", format="webm"
             ) as output_video_container,
             av.open(
                 output_audio_file_path, "w", format="flac"
