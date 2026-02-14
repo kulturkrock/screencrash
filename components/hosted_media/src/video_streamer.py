@@ -35,6 +35,13 @@ from util import assert_and_get_one
 
 
 @dataclass
+class _PlayingState:
+    temp_dir: tempfile.TemporaryDirectory
+    output_video_file_path: Path
+    duration: float
+
+
+@dataclass
 class _JumpInProgress:
     jumping_to: int  # in av.time_base
     jumping_from: int  # in av.time_base
@@ -58,33 +65,27 @@ class VideoStreamer:
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
-        self.temp_dir = None
-        self.output_video_file_path = None
+        self.playing_state: _PlayingState | None = None
         self.done = False
-        self.duration: float | None = None
 
     def start(self) -> None:
-        self.temp_dir = tempfile.TemporaryDirectory(
-            prefix=f"screencrash-video-{datetime.now().isoformat()}-"
-        )
-        self.output_video_file_path = Path(self.temp_dir.name) / (
-            "out" + self.input_video_file_path.suffix
-        )
-        self.output_video_file_path.touch()
         asyncio.create_task(self._stream())
 
     def get_duration(self) -> float:
-        if self.duration is None:
+        if self.playing_state is None:
+            # This may be called before we've managed to get the duration from the input file, so we
+            # should return something. It will look a bit weird in the UI at the start, but has no
+            # other consequences.
             return 0
-        return self.duration
+        return self.playing_state.duration
 
     def get_position(self) -> float:
         return 0
 
     def stop(self) -> None:
-        if self.temp_dir is None:
+        if self.playing_state is None:
             raise RuntimeError("VideoStreamer never started")
-        self.temp_dir.cleanup()
+        self.playing_state.temp_dir.cleanup()
         self.done = True
 
     def get_mimetype(self) -> str:
@@ -94,25 +95,36 @@ class VideoStreamer:
         return self.done
 
     def get_output_file(self) -> Path:
-        if self.output_video_file_path is None:
+        if self.playing_state is None:
             raise RuntimeError("VideoStreamer never started")
-        return self.output_video_file_path
+        return self.playing_state.output_video_file_path
+
+    def _broadcast_change(self) -> None:
+        self.effect_changed_callback()
 
     async def _stream(self) -> None:
-        if self.output_video_file_path is None:
-            raise RuntimeError("VideoStreamer never started")
+        temp_dir = tempfile.TemporaryDirectory(
+            prefix=f"screencrash-video-{datetime.now().isoformat()}-"
+        )
+        output_video_file_path = Path(temp_dir.name) / (
+            "out" + self.input_video_file_path.suffix
+        )
+        output_video_file_path.touch()
         with (
             av.open(self.input_video_file_path, "r") as input_container,
-            av.open(self.output_video_file_path, "w", format="mp4") as output_container,
+            av.open(output_video_file_path, "w", format="mp4") as output_container,
         ):
             in_video_stream, duration = self._extract_from_input_container(
                 input_container
             )
+            self.playing_state = _PlayingState(
+                temp_dir, output_video_file_path, duration / av.time_base
+            )
+            self._broadcast_change()  # For the updated duration
+
             out_audio_stream = self._init_output_container(
                 output_container, in_video_stream
             )
-
-            self._set_duration_and_broadcast_change(duration)
 
             # tmp
             looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)
@@ -259,7 +271,3 @@ class VideoStreamer:
         out_audio_stream = output_container.add_stream("flac")
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_audio_stream
-
-    def _set_duration_and_broadcast_change(self, duration_in_av_time_base: int):
-        self.duration = duration_in_av_time_base / av.time_base
-        self.effect_changed_callback()  # To let people know the actual duration
