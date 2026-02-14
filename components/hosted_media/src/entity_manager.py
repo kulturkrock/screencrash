@@ -3,7 +3,7 @@ from typing import Any
 from dataclasses import dataclass
 from pathlib import Path
 import time
-from video_streamer import VideoStreamer
+from media_streamer import MediaStreamer
 import asyncio
 import random
 import string
@@ -92,7 +92,7 @@ class Video:
     playing: bool
     position: float  # How can this be synced with webpage? Get dynamically somehow?
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
-    video_streamer: VideoStreamer
+    media_streamer: MediaStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
         message = {
@@ -129,8 +129,8 @@ class Video:
             "viewport_width": self.width,
             "viewport_height": self.height,
             "layer": self.layer,
-            "duration": self.video_streamer.get_duration(),
-            "currentTime": self.video_streamer.get_position(),
+            "duration": self.media_streamer.get_duration(),
+            "currentTime": self.media_streamer.get_position(),
             "lastSync": time.time() * 1000,
             "playing": self.playing,
             "looping": self.loops_left > 0,
@@ -143,10 +143,10 @@ class EntityManager:
         self.component_id = component_id
         self.asset_dir = asset_dir
         self.webpage_message_listeners: list[Callable[[dict[str, Any]]]] = []
-        self.create_video_streamer_listeners: list[
-            Callable[[str, VideoStreamer], None]
+        self.create_media_streamer_listeners: list[
+            Callable[[str, MediaStreamer], None]
         ] = []
-        self.delete_video_streamer_listeners: list[Callable[[str], None]] = []
+        self.delete_media_streamer_listeners: list[Callable[[str], None]] = []
         self.core_message_listeners: list[Callable[[dict[str, Any]]]] = []
         self.entities: dict[str, Image | Video] = {}
 
@@ -157,8 +157,8 @@ class EntityManager:
         )
         entity = self.entities[entity_id]
         if isinstance(entity, Video):
-            entity.video_streamer.stop()
-            for listener in self.delete_video_streamer_listeners:
+            entity.media_streamer.stop()
+            for listener in self.delete_media_streamer_listeners:
                 listener(entity.stream_id)
         del self.entities[entity_id]
 
@@ -214,7 +214,7 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
-            streamer = VideoStreamer(
+            streamer = MediaStreamer(
                 message["asset"],
                 self.asset_dir,
                 lambda: self.broadcast_change_message(self.entities[entity_id]),
@@ -224,7 +224,7 @@ class EntityManager:
                 + "-"
                 + "".join(random.choice(string.ascii_lowercase) for i in range(20))
             )
-            for listener in self.create_video_streamer_listeners:
+            for listener in self.create_media_streamer_listeners:
                 listener(stream_id, streamer)
             streamer.start()
             new_entity = Video(
@@ -245,7 +245,7 @@ class EntityManager:
                 playing=message.get("autostart", True),
                 position=message.get("start_at", 0),
                 stream_id=stream_id,
-                video_streamer=streamer,
+                media_streamer=streamer,
             )
         else:
             raise RuntimeError(f"Unsupported type {type}")
@@ -372,13 +372,13 @@ class EntityManager:
     ) -> None:
         self.webpage_message_listeners.append(listener)
 
-    def add_create_video_streamer_listener(
-        self, listener: Callable[[str, VideoStreamer], None]
+    def add_create_media_streamer_listener(
+        self, listener: Callable[[str, MediaStreamer], None]
     ):
-        self.create_video_streamer_listeners.append(listener)
+        self.create_media_streamer_listeners.append(listener)
 
-    def add_delete_video_streamer_listener(self, listener: Callable[[str], None]):
-        self.delete_video_streamer_listeners.append(listener)
+    def add_delete_media_streamer_listener(self, listener: Callable[[str], None]):
+        self.delete_media_streamer_listeners.append(listener)
 
     def add_core_message_listener(
         self, listener: Callable[[dict[str, Any]], None]

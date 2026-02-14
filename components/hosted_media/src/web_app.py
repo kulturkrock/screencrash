@@ -5,7 +5,7 @@ import json
 from aiohttp_sse import sse_response
 import asyncio
 from typing import Any
-from video_streamer import VideoStreamer
+from media_streamer import MediaStreamer
 import aiofiles
 
 
@@ -16,13 +16,13 @@ class RequestHandler:
         self.entity_manager.add_webpage_message_listener(self.send_to_subscribers)
         self.subscribe_responses = []
 
-        self.entity_manager.add_create_video_streamer_listener(
-            self.register_video_streamer
+        self.entity_manager.add_create_media_streamer_listener(
+            self.register_media_streamer
         )
-        self.entity_manager.add_delete_video_streamer_listener(
-            self.deregister_video_streamer
+        self.entity_manager.add_delete_media_streamer_listener(
+            self.deregister_media_streamer
         )
-        self.video_streamers: dict[str, VideoStreamer] = {}
+        self.media_streamers: dict[str, MediaStreamer] = {}
 
     async def redirect_to_static(self, request: web.Request):
         return web.Response(status=302, headers={"location": "static/index.html"})
@@ -32,11 +32,11 @@ class RequestHandler:
             data = json.dumps(message)
             asyncio.create_task(resp.send(data))
 
-    def register_video_streamer(self, entity_id: str, streamer: VideoStreamer):
-        self.video_streamers[entity_id] = streamer
+    def register_media_streamer(self, entity_id: str, streamer: MediaStreamer):
+        self.media_streamers[entity_id] = streamer
 
-    def deregister_video_streamer(self, entity_id: str):
-        del self.video_streamers[entity_id]
+    def deregister_media_streamer(self, entity_id: str):
+        del self.media_streamers[entity_id]
 
     async def stream(self, request: web.Request):
         try:
@@ -47,7 +47,7 @@ class RequestHandler:
         if not (stream_type == "audio" or stream_type == "video"):
             return web.Response(status=400)
         try:
-            streamer = self.video_streamers[stream_id]
+            streamer = self.media_streamers[stream_id]
         except KeyError:
             return web.Response(status=404)
         response = web.StreamResponse(

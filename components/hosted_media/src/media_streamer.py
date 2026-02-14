@@ -62,7 +62,7 @@ class _PlayingState:
     waiting_for_video_keyframe: bool
 
 
-class VideoStreamer:
+class MediaStreamer:
 
     def __init__(
         self,
