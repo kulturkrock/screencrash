@@ -4,7 +4,7 @@ from fractions import Fraction
 import av
 import av.audio.resampler
 import numpy
-from matplotlib import pyplot
+
 
 from util import assert_and_get_one
 
@@ -122,6 +122,10 @@ def _plot_stitched_packet(
     start_array_cutoff_index: int,
     end_array_cutoff_index: int,
 ):
+    from matplotlib import (
+        pyplot,
+    )  # Just a debug thing, so no need for heavy imports if it's not used
+
     assert loop_start_frame.pts is not None
     assert loop_start_frame.time_base is not None
     assert loop_end_frame.pts is not None

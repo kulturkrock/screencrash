@@ -35,10 +35,10 @@ from util import assert_and_get_one
 
 
 @dataclass
-class _PlayingState:
-    temp_dir: tempfile.TemporaryDirectory
-    output_video_file_path: Path
-    duration: float
+class _Looping:
+    loop_start: int  # in av.time_base
+    loop_end: int  # in av.time_base
+    loops_left: int | None
 
 
 @dataclass
@@ -49,10 +49,16 @@ class _JumpInProgress:
 
 
 @dataclass
-class _Looping:
-    loop_start: int  # in av.time_base
-    loop_end: int  # in av.time_base
-    loops_left: int | None
+class _PlayingState:
+    temp_dir: tempfile.TemporaryDirectory
+    output_video_file_path: Path
+    out_audio_stream: av.AudioStream
+    input_container: av.container.InputContainer
+    duration: float
+    jump_in_progress: _JumpInProgress | None
+    next_video_timestamp: int  # In the time_base of the video stream
+    next_audio_timestamp: int  # In the time_base of the audio stream
+    waiting_for_video_keyframe: bool
 
 
 class VideoStreamer:
@@ -65,6 +71,7 @@ class VideoStreamer:
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
+        self.looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)  # tmp
         self.playing_state: _PlayingState | None = None
         self.done = False
 
@@ -106,149 +113,44 @@ class VideoStreamer:
         temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now().isoformat()}-"
         )
-        output_video_file_path = Path(temp_dir.name) / (
-            "out" + self.input_video_file_path.suffix
-        )
+        output_video_file_path = Path(temp_dir.name) / "out.mp4"
         output_video_file_path.touch()
         with (
             av.open(self.input_video_file_path, "r") as input_container,
             av.open(output_video_file_path, "w", format="mp4") as output_container,
         ):
-            in_video_stream, duration = self._extract_from_input_container(
-                input_container
+            out_audio_stream, duration = self._init_containers_and_state(
+                input_container, output_container
             )
             self.playing_state = _PlayingState(
-                temp_dir, output_video_file_path, duration / av.time_base
+                temp_dir=temp_dir,
+                output_video_file_path=output_video_file_path,
+                out_audio_stream=out_audio_stream,
+                input_container=input_container,
+                duration=duration / av.time_base,
+                jump_in_progress=None,
+                next_video_timestamp=0,
+                next_audio_timestamp=0,
+                waiting_for_video_keyframe=False,
             )
             self._broadcast_change()  # For the updated duration
 
-            out_audio_stream = self._init_output_container(
-                output_container, in_video_stream
-            )
-
-            # tmp
-            looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)
-
-            next_video_timestamp = 0
-            next_audio_timestamp = 0
-            jump_in_progress: _JumpInProgress | None = None
-            waiting_for_video_keyframe = False
             # The loop will go on until we reach the end of the file.
             # Jumping back using input_container.seek() is safe during the loop.
             for packet in input_container.demux():
 
-                if packet.pts is None:
-                    # Dummy packet, just pass it through
-                    output_container.mux(packet)
-                elif jump_in_progress is not None and packet_fully_before_timestamp(
-                    packet, jump_in_progress.jumping_to
-                ):
-                    # We just jumped, and haven't reached a packet containing the time we jumped to yet. Drop the packet.
-                    pass
-                elif packet.stream.type == "video":
-                    # Video packet, modify timestamp and pass through.
-                    # Or possibly drop, if haven't seen a keyframe after jumping.
-                    # Either way, update the next timestamp
-                    assert packet.duration is not None  # Not a dummy packet
-                    packet.pts = next_video_timestamp
-                    packet.dts = next_video_timestamp
-                    next_video_timestamp += packet.duration
-                    if waiting_for_video_keyframe and packet.is_keyframe:
-                        waiting_for_video_keyframe = False
-                    if not waiting_for_video_keyframe:
-                        output_container.mux(packet)
-                elif (
-                    packet.stream.type == "audio"
-                    and looping
-                    and not packet_fully_before_timestamp(packet, looping.loop_end)
-                ):
-                    # Audio packet containing the end of the looping portion.
-                    # Store the current packet so we can stitch it together with the start of the loop,
-                    # then seek to the start of the loop.
-                    assert packet.duration is not None  # Not a dummy packet
-                    jump_in_progress = _JumpInProgress(
-                        jumping_from=looping.loop_end,
-                        jumping_to=looping.loop_start,
-                        partial_loop_end_packet=packet,
-                    )
-                    packet_duration = convert_to_av_time_base(
-                        packet.duration, packet.time_base
-                    )
-                    seek_to = max(
-                        jump_in_progress.jumping_to - 5 * packet_duration,
-                        0,
-                    )
-
-                    input_container.seek(seek_to, any_frame=True)
-                    waiting_for_video_keyframe = True
-
-                    # tmp maybe, not sure we need to be able to loop N times
-                    if looping.loops_left is not None:
-                        looping.loops_left -= 1
-                        if looping.loops_left <= 0:
-                            looping = None
-                            # this one is definitely tmp
-                            if jump_in_progress.jumping_to == 1_212_720:
-                                looping = _Looping(27_054_200, 32_793_060, 5)
-
-                elif packet.stream.type == "audio" and jump_in_progress:
-                    # We've just jumped, and reached the audio packet containing a time we jumped to.
-                    # Stitch it together with the packet we stored before jumping.
-
-                    jumped_from_frame = typing.cast(
-                        av.AudioFrame,
-                        assert_and_get_one(
-                            jump_in_progress.partial_loop_end_packet.decode()
-                        ),
-                    )
-                    jumped_to_frame = typing.cast(
-                        av.AudioFrame, assert_and_get_one(packet.decode())
-                    )
-
-                    frame = stitch_audio_frames(
-                        jumped_from_frame,
-                        jumped_to_frame,
-                        jump_in_progress.jumping_from,
-                        jump_in_progress.jumping_to,
-                    )
-
-                    jump_in_progress = None
-
-                    out_packets = out_audio_stream.encode(frame)
-
-                    for out_packet in out_packets:
-                        if (
-                            out_packet.duration is not None
-                        ):  # If it's a dummy packet somehow, just send it
-                            out_packet.pts = next_audio_timestamp
-                            out_packet.dts = next_audio_timestamp
-                            next_audio_timestamp = out_packet.pts + out_packet.duration
-                        output_container.mux(out_packet)
-
+                if packet.stream.type == "video":
+                    self._handle_video_packet(packet, output_container)
                 elif packet.stream.type == "audio":
-                    # A normal audio packet, just re-encode it
-
-                    frame = typing.cast(
-                        av.AudioFrame, assert_and_get_one(packet.decode())
-                    )
-
-                    out_packets = out_audio_stream.encode(frame)
-
-                    for out_packet in out_packets:
-                        if (
-                            out_packet.duration is not None
-                        ):  # If it's a dummy packet somehow, just send it
-                            out_packet.pts = next_audio_timestamp
-                            out_packet.dts = next_audio_timestamp
-                            next_audio_timestamp = out_packet.pts + out_packet.duration
-                        output_container.mux(out_packet)
+                    self._handle_audio_packet(packet, output_container)
             # Reached the end of the file
             self.done = True
 
-    def _extract_from_input_container(
-        self, input_container: av.container.InputContainer
-    ) -> tuple[av.VideoStream, int]:
-
+    def _init_containers_and_state(
+        self,
+        input_container: av.container.InputContainer,
+        output_container: av.container.OutputContainer,
+    ) -> tuple[av.AudioStream, int]:
         if len(input_container.streams.video) != 1:
             raise RuntimeError(
                 f"Expected 1 video stream, found {len(input_container.streams.video)}"
@@ -259,15 +161,131 @@ class VideoStreamer:
             raise RuntimeError("container.duration is None")
         duration = input_container.duration
 
-        return in_video_stream, duration
-
-    def _init_output_container(
-        self,
-        output_container: av.container.OutputContainer,
-        in_video_stream: av.VideoStream,
-    ) -> av.AudioStream:
-
         output_container.add_stream_from_template(in_video_stream)
         out_audio_stream = output_container.add_stream("flac")
         assert isinstance(out_audio_stream, av.AudioStream)
-        return out_audio_stream
+        return out_audio_stream, duration
+
+    def _handle_video_packet(
+        self, packet: av.Packet, output_container: av.container.OutputContainer
+    ):
+        assert self.playing_state is not None
+        if packet.pts is None:
+            # Dummy packet, just pass it through
+            output_container.mux(packet)
+        elif (
+            self.playing_state.jump_in_progress is not None
+            and packet_fully_before_timestamp(
+                packet, self.playing_state.jump_in_progress.jumping_to
+            )
+        ):
+            # We just jumped, and haven't reached a packet containing the time we jumped to yet. Drop the packet.
+            pass
+        else:
+            # Modify timestamp and pass through.
+            # Or possibly drop, if haven't seen a keyframe after jumping.
+            # Either way, update the next timestamp
+            assert packet.duration is not None  # Not a dummy packet
+            packet.pts = self.playing_state.next_video_timestamp
+            packet.dts = packet.pts
+            self.playing_state.next_video_timestamp += packet.duration
+            if self.playing_state.waiting_for_video_keyframe and packet.is_keyframe:
+                self.playing_state.waiting_for_video_keyframe = False
+            if not self.playing_state.waiting_for_video_keyframe:
+                output_container.mux(packet)
+
+    def _handle_audio_packet(
+        self,
+        packet: av.Packet,
+        output_container: av.container.OutputContainer,
+    ):
+        assert self.playing_state is not None
+        if packet.pts is None:
+            # Dummy packet, just pass it through
+            output_container.mux(packet)
+        elif (
+            self.playing_state.jump_in_progress is not None
+            and packet_fully_before_timestamp(
+                packet, self.playing_state.jump_in_progress.jumping_to
+            )
+        ):
+            # We just jumped, and haven't reached a packet containing the time we jumped to yet. Drop the packet.
+            pass
+
+        elif self.playing_state.jump_in_progress:
+            # We've just jumped, and reached the audio packet containing a time we jumped to.
+            # Stitch it together with the packet we stored before jumping.
+
+            jumped_from_frame = typing.cast(
+                av.AudioFrame,
+                assert_and_get_one(
+                    self.playing_state.jump_in_progress.partial_loop_end_packet.decode()
+                ),
+            )
+            jumped_to_frame = typing.cast(
+                av.AudioFrame, assert_and_get_one(packet.decode())
+            )
+
+            frame = stitch_audio_frames(
+                jumped_from_frame,
+                jumped_to_frame,
+                self.playing_state.jump_in_progress.jumping_from,
+                self.playing_state.jump_in_progress.jumping_to,
+            )
+
+            self.playing_state.jump_in_progress = None
+
+            out_packets = self.playing_state.out_audio_stream.encode(frame)
+
+            for out_packet in out_packets:
+                if (
+                    out_packet.duration is not None
+                ):  # If it's a dummy packet somehow, just send it
+                    out_packet.pts = self.playing_state.next_audio_timestamp
+                    out_packet.dts = out_packet.pts
+                    self.playing_state.next_audio_timestamp += out_packet.duration
+                output_container.mux(out_packet)
+        elif self.looping and not packet_fully_before_timestamp(
+            packet, self.looping.loop_end
+        ):
+            # Audio packet containing the end of the looping portion.
+            # Store the current packet so we can stitch it together with the start of the loop,
+            # then seek to the start of the loop.
+            assert packet.duration is not None  # Not a dummy packet
+            self.playing_state.jump_in_progress = _JumpInProgress(
+                jumping_from=self.looping.loop_end,
+                jumping_to=self.looping.loop_start,
+                partial_loop_end_packet=packet,
+            )
+            packet_duration = convert_to_av_time_base(packet.duration, packet.time_base)
+            seek_to = max(
+                self.playing_state.jump_in_progress.jumping_to - 5 * packet_duration,
+                0,
+            )
+
+            self.playing_state.input_container.seek(seek_to, any_frame=True)
+            self.playing_state.waiting_for_video_keyframe = True
+
+            # tmp maybe, not sure we need to be able to loop N times
+            if self.looping.loops_left is not None:
+                self.looping.loops_left -= 1
+                if self.looping.loops_left <= 0:
+                    self.looping = None
+                    # this one is definitely tmp
+                    if self.playing_state.jump_in_progress.jumping_to == 1_212_720:
+                        self.looping = _Looping(27_054_200, 32_793_060, 5)
+        else:
+            # A normal audio packet, just re-encode it
+
+            frame = typing.cast(av.AudioFrame, assert_and_get_one(packet.decode()))
+
+            out_packets = self.playing_state.out_audio_stream.encode(frame)
+
+            for out_packet in out_packets:
+                if (
+                    out_packet.duration is not None
+                ):  # If it's a dummy packet somehow, just send it
+                    out_packet.pts = self.playing_state.next_audio_timestamp
+                    out_packet.dts = out_packet.pts
+                    self.playing_state.next_audio_timestamp += out_packet.duration
+                output_container.mux(out_packet)
