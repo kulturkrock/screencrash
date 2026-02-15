@@ -101,7 +101,7 @@ class MediaStreamer:
         if stream_type == "video":
             return "video/webm"
         else:
-            return "audio/flac"
+            return "audio/ogg"
 
     def is_done(self) -> bool:
         return self.done
@@ -142,7 +142,7 @@ class MediaStreamer:
                     av.open(
                         output_audio_file,
                         "w",
-                        format="flac",
+                        format="ogg",
                         options={"live": "1"},
                     ) as output_audio_container,
                 ):
@@ -215,7 +215,7 @@ class MediaStreamer:
 
         output_video_container.add_stream_from_template(in_video_stream)
 
-        out_audio_stream = output_audio_container.add_stream("flac")
+        out_audio_stream = output_audio_container.add_stream("libopus")
 
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_audio_stream, duration
