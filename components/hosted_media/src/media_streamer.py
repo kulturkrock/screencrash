@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import datetime
 import typing
 import asyncio
+import time
 
 import av
 import av.container
@@ -72,7 +73,7 @@ class MediaStreamer:
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
-        self.looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)  # tmp
+        self.looping: _Looping | None = None  # _Looping(1_212_720, 3_612_920, 5)  # tmp
         self.playing_state: _PlayingState | None = None
         self.done = False
 
@@ -125,41 +126,65 @@ class MediaStreamer:
         output_audio_file_path = Path(temp_dir.name) / "out.flac"
         output_audio_file_path.touch()
         with (
-            av.open(self.input_video_file_path, "r") as input_container,
-            av.open(
-                output_video_file_path, "w", format="webm"
-            ) as output_video_container,
-            av.open(
-                output_audio_file_path, "w", format="flac"
-            ) as output_audio_container,
+            open(self.input_video_file_path, "rb") as input_video_file,
+            open(output_video_file_path, "wb") as output_video_file,
+            open(output_audio_file_path, "wb") as output_audio_file,
         ):
-            out_audio_stream, duration = self._init_containers_and_state(
-                input_container, output_video_container, output_audio_container
-            )
-            self.playing_state = _PlayingState(
-                temp_dir=temp_dir,
-                output_video_file_path=output_video_file_path,
-                output_audio_file_path=output_audio_file_path,
-                out_audio_stream=out_audio_stream,
-                input_container=input_container,
-                duration=duration / av.time_base,
-                jump_in_progress=None,
-                next_video_timestamp=0,
-                next_audio_timestamp=0,
-                waiting_for_video_keyframe=False,
-            )
-            self._broadcast_change()  # For the updated duration
+            with (
+                av.open(input_video_file, "r") as input_container,
+                av.open(
+                    output_video_file, "w", format="webm", buffer_size=1028
+                ) as output_video_container,
+                av.open(
+                    output_audio_file, "w", format="flac", buffer_size=1028
+                ) as output_audio_container,
+            ):
+                out_audio_stream, duration = self._init_containers_and_state(
+                    input_container, output_video_container, output_audio_container
+                )
+                self.playing_state = _PlayingState(
+                    temp_dir=temp_dir,
+                    output_video_file_path=output_video_file_path,
+                    output_audio_file_path=output_audio_file_path,
+                    out_audio_stream=out_audio_stream,
+                    input_container=input_container,
+                    duration=duration / av.time_base,
+                    jump_in_progress=None,
+                    next_video_timestamp=0,
+                    next_audio_timestamp=0,
+                    waiting_for_video_keyframe=False,
+                )
+                self._broadcast_change()  # For the updated duration
 
-            # The loop will go on until we reach the end of the file.
-            # Jumping back using input_container.seek() is safe during the loop.
-            for packet in input_container.demux():
+                started_playing = time.time()
 
-                if packet.stream.type == "video":
-                    self._handle_video_packet(packet, output_video_container)
-                elif packet.stream.type == "audio":
-                    self._handle_audio_packet(packet, output_audio_container)
-            # Reached the end of the file
-            self.done = True
+                # The loop will go on until we reach the end of the file.
+                # Jumping back using input_container.seek() is safe during the loop.
+                for packet in input_container.demux():
+
+                    if packet.stream.type == "video":
+                        self._handle_video_packet(packet, output_video_container)
+                    elif packet.stream.type == "audio":
+                        self._handle_audio_packet(packet, output_audio_container)
+                        if packet.time_base is not None:
+                            # Let's use the audio stream timestamps to see how far we've encoded
+                            encoded_time = float(
+                                self.playing_state.next_audio_timestamp
+                                * packet.time_base
+                            )
+                            played_time = time.time() - started_playing
+                            size_kb = (
+                                self.playing_state.output_video_file_path.stat().st_size
+                                / 1000
+                            )
+                            print(
+                                f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
+                            )
+                            if encoded_time - played_time > 2:
+                                await asyncio.sleep(encoded_time - played_time - 2)
+
+                # Reached the end of the file
+                self.done = True
 
     def _init_containers_and_state(
         self,
@@ -178,7 +203,15 @@ class MediaStreamer:
         duration = input_container.duration
 
         output_video_container.add_stream_from_template(in_video_stream)
+        output_video_container.flags = (
+            output_video_container.flags | av.container.Flags.flush_packets.value
+        )
+
         out_audio_stream = output_audio_container.add_stream("flac")
+        output_audio_container.flags = (
+            output_audio_container.flags | av.container.Flags.flush_packets.value
+        )
+
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_audio_stream, duration
 
@@ -189,6 +222,7 @@ class MediaStreamer:
         if packet.pts is None:
             # Dummy packet, just pass it through
             output_container.mux(packet)
+            print("video mux dummy")
         elif (
             self.playing_state.jump_in_progress is not None
             and packet_fully_before_timestamp(
@@ -197,6 +231,7 @@ class MediaStreamer:
         ):
             # We just jumped, and haven't reached a packet containing the time we jumped to yet. Drop the packet.
             pass
+            print("video drop")
         else:
             # Modify timestamp and pass through.
             # Or possibly drop, if haven't seen a keyframe after jumping.
@@ -209,6 +244,7 @@ class MediaStreamer:
                 self.playing_state.waiting_for_video_keyframe = False
             if not self.playing_state.waiting_for_video_keyframe:
                 output_container.mux(packet)
+                print("video mux")
 
     def _handle_audio_packet(
         self,
@@ -219,6 +255,7 @@ class MediaStreamer:
         if packet.pts is None:
             # Dummy packet, just pass it through
             output_container.mux(packet)
+            print("audio mux dummy")
         elif (
             self.playing_state.jump_in_progress is not None
             and packet_fully_before_timestamp(
@@ -227,6 +264,7 @@ class MediaStreamer:
         ):
             # We just jumped, and haven't reached a packet containing the time we jumped to yet. Drop the packet.
             pass
+            print("audio drop")
 
         elif self.playing_state.jump_in_progress:
             # We've just jumped, and reached the audio packet containing a time we jumped to.
@@ -261,9 +299,11 @@ class MediaStreamer:
                     out_packet.dts = out_packet.pts
                     self.playing_state.next_audio_timestamp += out_packet.duration
                 output_container.mux(out_packet)
+                print("audio mux (after jump)")
         elif self.looping and not packet_fully_before_timestamp(
             packet, self.looping.loop_end
         ):
+            print("loopin")
             # Audio packet containing the end of the looping portion.
             # Store the current packet so we can stitch it together with the start of the loop,
             # then seek to the start of the loop.
@@ -305,3 +345,4 @@ class MediaStreamer:
                     out_packet.dts = out_packet.pts
                     self.playing_state.next_audio_timestamp += out_packet.duration
                 output_container.mux(out_packet)
+                print("audio mux")

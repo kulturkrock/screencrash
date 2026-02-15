@@ -64,7 +64,7 @@ class RequestHandler:
                     if len(chunk) > 0:
                         await response.write(chunk)
                     elif not streamer.is_done():
-                        await asyncio.sleep(1)
+                        await asyncio.sleep(0.1)
                     else:
                         break
 
