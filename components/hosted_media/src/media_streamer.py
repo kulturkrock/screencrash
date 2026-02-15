@@ -51,7 +51,6 @@ class _JumpInProgress:
 
 @dataclass
 class _PlayingState:
-    temp_dir: tempfile.TemporaryDirectory
     output_video_file_path: Path
     output_audio_file_path: Path
     out_audio_stream: av.AudioStream
@@ -75,10 +74,11 @@ class MediaStreamer:
         self.effect_changed_callback = effect_changed_callback
         self.looping: _Looping | None = None  # _Looping(1_212_720, 3_612_920, 5)  # tmp
         self.playing_state: _PlayingState | None = None
+        self.stream_task: asyncio.Task | None = None
         self.done = False
 
     def start(self) -> None:
-        asyncio.create_task(self._stream())
+        self.stream_task = asyncio.create_task(self._stream())
 
     def get_duration(self) -> float:
         if self.playing_state is None:
@@ -92,9 +92,9 @@ class MediaStreamer:
         return 0
 
     def stop(self) -> None:
-        if self.playing_state is None:
+        if self.stream_task is None:
             raise RuntimeError("VideoStreamer never started")
-        self.playing_state.temp_dir.cleanup()
+        self.stream_task.cancel()
         self.done = True
 
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
@@ -121,76 +121,81 @@ class MediaStreamer:
         temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now().isoformat()}-"
         )
-        output_video_file_path = Path(temp_dir.name) / "out.webm"
-        output_video_file_path.touch()
-        output_audio_file_path = Path(temp_dir.name) / "out.flac"
-        output_audio_file_path.touch()
-        with (
-            open(self.input_video_file_path, "rb") as input_video_file,
-            open(output_video_file_path, "wb") as output_video_file,
-            open(output_audio_file_path, "wb") as output_audio_file,
-        ):
+        try:
+            output_video_file_path = Path(temp_dir.name) / "out.webm"
+            output_video_file_path.touch()
+            output_audio_file_path = Path(temp_dir.name) / "out.flac"
+            output_audio_file_path.touch()
             with (
-                av.open(input_video_file, "r") as input_container,
-                av.open(
-                    output_video_file,
-                    "w",
-                    format="webm",
-                    options={"live": "1"},
-                ) as output_video_container,
-                av.open(
-                    output_audio_file,
-                    "w",
-                    format="flac",
-                    options={"live": "1"},
-                ) as output_audio_container,
+                open(self.input_video_file_path, "rb") as input_video_file,
+                open(output_video_file_path, "wb") as output_video_file,
+                open(output_audio_file_path, "wb") as output_audio_file,
             ):
-                out_audio_stream, duration = self._init_containers_and_state(
-                    input_container, output_video_container, output_audio_container
-                )
-                self.playing_state = _PlayingState(
-                    temp_dir=temp_dir,
-                    output_video_file_path=output_video_file_path,
-                    output_audio_file_path=output_audio_file_path,
-                    out_audio_stream=out_audio_stream,
-                    input_container=input_container,
-                    duration=duration / av.time_base,
-                    jump_in_progress=None,
-                    next_video_timestamp=0,
-                    next_audio_timestamp=0,
-                    waiting_for_video_keyframe=False,
-                )
-                self._broadcast_change()  # For the updated duration
+                with (
+                    av.open(input_video_file, "r") as input_container,
+                    av.open(
+                        output_video_file,
+                        "w",
+                        format="webm",
+                        options={"live": "1"},
+                    ) as output_video_container,
+                    av.open(
+                        output_audio_file,
+                        "w",
+                        format="flac",
+                        options={"live": "1"},
+                    ) as output_audio_container,
+                ):
+                    out_audio_stream, duration = self._init_containers_and_state(
+                        input_container, output_video_container, output_audio_container
+                    )
+                    self.playing_state = _PlayingState(
+                        output_video_file_path=output_video_file_path,
+                        output_audio_file_path=output_audio_file_path,
+                        out_audio_stream=out_audio_stream,
+                        input_container=input_container,
+                        duration=duration / av.time_base,
+                        jump_in_progress=None,
+                        next_video_timestamp=0,
+                        next_audio_timestamp=0,
+                        waiting_for_video_keyframe=False,
+                    )
+                    self._broadcast_change()  # For the updated duration
 
-                started_playing = time.time()
+                    started_playing = time.time()
 
-                # The loop will go on until we reach the end of the file.
-                # Jumping back using input_container.seek() is safe during the loop.
-                for packet in input_container.demux():
+                    # The loop will go on until we reach the end of the file.
+                    # Jumping back using input_container.seek() is safe during the loop.
+                    for packet in input_container.demux():
 
-                    if packet.stream.type == "video":
-                        self._handle_video_packet(packet, output_video_container)
-                    elif packet.stream.type == "audio":
-                        self._handle_audio_packet(packet, output_audio_container)
-                        if packet.time_base is not None:
-                            # Let's use the audio stream timestamps to see how far we've encoded
-                            encoded_time = float(
-                                self.playing_state.next_audio_timestamp
-                                * packet.time_base
-                            )
-                            played_time = time.time() - started_playing
-                            size_kb = (
-                                self.playing_state.output_video_file_path.stat().st_size
-                                / 1000
-                            )
-                            print(
-                                f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
-                            )
-                            if encoded_time - played_time > 5:
-                                await asyncio.sleep(encoded_time - played_time - 5)
+                        if packet.stream.type == "video":
+                            self._handle_video_packet(packet, output_video_container)
+                        elif packet.stream.type == "audio":
+                            self._handle_audio_packet(packet, output_audio_container)
+                            if packet.time_base is not None:
+                                # Let's use the audio stream timestamps to see how far we've encoded
+                                encoded_time = float(
+                                    self.playing_state.next_audio_timestamp
+                                    * packet.time_base
+                                )
+                                played_time = time.time() - started_playing
+                                size_kb = (
+                                    self.playing_state.output_video_file_path.stat().st_size
+                                    / 1000
+                                )
+                                print(
+                                    f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
+                                )
+                                if encoded_time - played_time > 5:
+                                    await asyncio.sleep(encoded_time - played_time - 5)
 
-                # Reached the end of the file
-                self.done = True
+                    # Reached the end of the file
+                    self.done = True
+        finally:
+            await asyncio.sleep(
+                1
+            )  # Wait a second to let any readers finish, just in case
+            temp_dir.cleanup()
 
     def _init_containers_and_state(
         self,
