@@ -28,6 +28,7 @@ class ActionTemplate:
     id: str
     target: str
     cmd: str
+    delay: float = 0
     desc: Optional[str] = None
     assets: List[str] = field(default_factory=list)
     params: Dict[str, Any] = field(default_factory=dict)
@@ -177,9 +178,14 @@ def get_action_desc(action: ActionTemplate) -> str:
     if action.desc:
         return action.desc
     elif "entityId" in action.params:
-        return f"{action.target}:{action.cmd} {action.params['entityId']}"
+        desc = f"{action.target}:{action.cmd} {action.params['entityId']}"
     else:
-        return f"{action.target}:{action.cmd}"
+        desc = f"{action.target}:{action.cmd}"
+    
+    if action.delay != 0:
+        return f"{desc} after {action.delay}s"
+    else:
+        return desc
 
 
 def create_action_and_inline_assets(action_dict: Dict[str, dict], key: str, assets: Dict[str, str]) -> ActionTemplate:

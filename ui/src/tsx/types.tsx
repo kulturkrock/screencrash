@@ -1,6 +1,7 @@
 interface IAction {
   target: string;
   cmd: string;
+  delay: number;
   desc: string;
   params: { [index: string]: unknown };
 }

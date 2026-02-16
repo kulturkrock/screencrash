@@ -6,7 +6,7 @@ from pathlib import Path
 import websockets
 from websockets.server import WebSocketServerProtocol
 
-from opus import ActionTemplate, load_opus
+from opus import ActionTemplate, load_opus, get_action_desc
 from peers.component import ComponentPeer
 from peers.inventory import InventoryPeer
 from performance import Performance
@@ -98,18 +98,22 @@ class Core:
     def _run_action_by_id(self, action_id):
         try:
             action = self._opus.action_templates[action_id]
-            self._run_action(action)
+            asyncio.create_task(self._run_action(action))
         except KeyError:
             print(f"Failed to find action or asset for action {action_id}. Skipping.")
             return
 
     def _run_action_on_the_fly(self, target, cmd, asset_names, params):
         action = ActionTemplate(
-            "on_the_fly_action", target, cmd, "Live command", asset_names, params
+            "on_the_fly_action", target, cmd, 0, "Live command", asset_names, params
         )
-        self._run_action(action)
+        asyncio.create_task(self._run_action(action))
 
-    def _run_action(self, action):
+    async def _run_action(self, action):
+        if action.delay != 0:
+            print(f"Will do '{get_action_desc(action)}' in {action.delay}s")
+            await asyncio.sleep(action.delay)
+            print(f"Doing '{get_action_desc(action)}'")
         handled = False
         assets = [self._opus.assets[key] for key in action.assets]
         for peer in self._components.values():
@@ -125,7 +129,7 @@ class Core:
             )
 
         for subaction in action.subactions:
-            self._run_action(subaction)
+            asyncio.create_task(self._run_action(subaction))
 
     def _reset_component(self, component_id: str):
         for peer in self._components.values():

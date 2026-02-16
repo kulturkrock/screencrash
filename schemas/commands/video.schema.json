@@ -43,6 +43,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "create" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -207,6 +208,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "destroy" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -234,6 +236,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "show" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -261,6 +264,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "hide" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -288,6 +292,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "opacity" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -322,6 +327,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "viewport" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -381,6 +387,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "layer" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -414,6 +421,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "set_next_file" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -457,6 +465,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "play" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -484,6 +493,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "pause" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -511,6 +521,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "toggle_mute" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -538,6 +549,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "set_volume" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -604,6 +616,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "seek" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -636,6 +649,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "set_loops" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -668,6 +682,7 @@
             "properties": {
                 "target": { "const": "video" },
                 "cmd": { "const": "fade" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
