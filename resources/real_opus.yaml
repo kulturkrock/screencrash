@@ -1,2905 +1,876 @@
-startNode: "1"
+startNode: 1a
 nodes:
-  "1":
-    prompt: "[Innan första akt, starta om ljudkomponenten]"
-    next: "1a"
-  "1a":
-    prompt: "[Redo att börja]"
-    next: "1b"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0000 Hyrulien.png"
-        params:
-          entityId: "hyrulien"
-          visible: true
-  "1b":
-    prompt: "[Presentations-korok av scen]"
-    next: "20"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part1.wav"
-        params:
-          entityId: "ouvertyr_audio"
-          looping: 0
-          seamless: true
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part2.wav"
-        params:
-          entityId: "ouvertyr_audio"
-  "20":
-    prompt: "Och hålla huvudet kallt [Musiken går du-duruu]"
-    next: "33"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0020 Tronsal.png"
-        params:
-          entityId: tronsal
-          visible: true
-          fadeIn:
-            from: 0
-            time: 2
-            to: 1
-  "33":
-    prompt: "Va? Är sanden borta [typ]"
-    next: "39"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part3.wav"
-        params:
-          entityId: "ouvertyr_audio"
-  "39":
-    prompt: "Visa en väg som oss segern kan ge [Lagom till 'Hyrulien']"
-    next: "51"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part4.wav"
-        params:
-          entityId: "ouvertyr_audio"
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "tronsal"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "51":
-    prompt: "Krävs mod, ja en djärvhet så stor [Musiken går du-duruu]"
-    next: "56"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0051-1 kakariko_village.png"
-        params:
-          entityId: kakariko
-          visible: true
-          fadeIn:
-            from: 0
-            time: 2
-            to: 1
-  "56":
-    prompt: "Och han verkar ha fått ett farligt uppdrag"
-    next: "67"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part5.wav"
-        params:
-          entityId: "ouvertyr_audio"
-  "67":
-    prompt: "Ge oss mod [Lagom till 'Hyrulien']"
-    next: "77"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part6.wav"
-        params:
-          entityId: "ouvertyr_audio"
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "kakariko"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "77":
-    prompt: "Det är blott den starkes land [Musiken går du-duruu]"
-    next: "80"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0077-1 gerudo.png"
-        params:
-          entityId: gerudo
-          visible: true
-          fadeIn:
-            from: 0
-            time: 2
-            to: 1
-  "80":
-    prompt: "Din mor... [Men inte precis innan loop]"
-    next: "96"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part7.wav"
-        params:
-          entityId: "ouvertyr_audio"
-  "96":
-    prompt: "Ja du är stark [Lagom till 'Hyrulien']"
-    next: "105a"
-    actions:
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "gerudo"
-          target: 0
-          time: 1
-          stopOnDone: true
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part8.wav"
-        params:
-          entityId: "ouvertyr_audio"
-  "105a":
-    prompt: "Hyrulien i harmoni [andra gången]"
-    next: "105b"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0107 Vardagsrum.png"
-        params:
-          entityId: "vardagsrum"
-          visible: true
-          layer: 1
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "hyrulien"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "105b":
-    prompt: "[Färdigriggat, gudinnor i poser]"
-    next: "118"
-    actions:
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0001 Ouvertyr_part9.wav"
-        params:
-          entityId: "ouvertyr_audio"
-      - target: "audio"
-        cmd: "set_loops"
-        params:
-          entityId: "ouvertyr_audio"
-          looping: 1
-  "118":
-    prompt: "Kan ni göra illusioner? [Nayru gör gester]"
-    next: "144"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0118 summon fejkdiin.wav"
-  "144":
-    prompt: "Det är inte som att det finns så mycket annat att göra. [Nayru avslutar förtrollningen]"
-    next: "174a"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0144 dismiss fejkdiin.wav"
-        params:
-          entityId: "dismiss_fejkdiin"
-  "174a":
-    prompt: "Ja, då kör vi! [Farore och Nayru går av scen]"
-    next: "174b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0174-1 startmeny_loading1a.mp4"
-        params:
-          entityId: "startmeny_loading1a"
-          visible: true
-          destroyOnEnd: false
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "vardagsrum"
-          target: 0
-          time: 0.25
-          stopOnDone: true
-  "174b":
-    prompt: "[Lite omriggning]"
-    next: "174c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0174-2 loading1b.mp4"
-        params:
-          entityId: "loading1b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "startmeny_loading1a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "vardagsrum"
-  "174c":
-    prompt: "[Lite omriggning till]"
-    next: "174d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0174-3 loading1c.mp4"
-        params:
-          entityId: "loading1c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading1b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "174d":
-    prompt: "[Fåtöljen förvandlad till tron, bordet flyttat och scenbyteskorokerna har gått av scen]"
-    next: "174e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0174-4 loading1d.mp4"
-        params:
-          entityId: "loading1d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading1c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "174e":
-    prompt: "[Laddbar full]"
-    next: "197"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0175 Tronsal.png"
-        params:
-          entityId: "tronsal"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading1d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "197":
-    prompt: "... det är för svårt!"
-    next: "263"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0197-2 Tronsal_bla.png"
-        params:
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-          visible: true
-          entityId: "tronsal_bla"
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0197-1 Vishet.wav"
-        params:
-          entityId: "vishet"
-  "263":
-    prompt: "Jag avslöjar mer när tiden är inne [Nayru går av scen]"
-    next: "266a"
-    actions:
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "tronsal_bla"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "266a":
-    prompt: "Det borde inte vara så svårt [Zelda går av scen]"
-    next: "266b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0266-1 loading2a.mp4"
-        params:
-          entityId: "loading2a"
-          visible: true
-          destroyOnEnd: false
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "266b":
-    prompt: "[Lite omriggning]"
-    next: "266c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0266-2 loading2b.mp4"
-        params:
-          entityId: "loading2b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading2a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal"
-  "266c":
-    prompt: "[Lite omriggning till]"
-    next: "266d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0266-3 loading2c.mp4"
-        params:
-          entityId: "loading2c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading2b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "266d":
-    prompt: "[Monstret och nöten det enda på scen]"
-    next: "266e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0266-4 loading2d.mp4"
-        params:
-          entityId: "loading2d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading2c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "266e":
-    prompt: "[Laddbar full]"
-    next: "278a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0267 faronskogen_base.png"
-        params:
-          entityId: "faronskogen"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading2d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "278a":
-    prompt: "Om du inte vågar så fixar jag väl saken själv. [Vännen trampar på en kvist]"
-    next: "284"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0278 MonsterFight.mp4"
-        params:
-          entityId: "monster_fight"
-          visible: true
-  "284":
-    prompt: "... Farmor? [Farore tar av huvan]"
-    next: "314"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0311 faronskogen_farore.png"
-        params:
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-          visible: true
-          entityId: "faronskogen_gron"
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0284 Mod.mp4"
-        params:
-          entityId: "mod"
-          visible: true
-  "314":
-    prompt: "Vi syns! [Farore börjar gå av scen]"
-    next: "315"
-    actions:
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "faronskogen_gron"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "315":
-    prompt: "Du glömde något! [Farore går tillbaka mot Link]"
-    next: "322"
-    actions:
-      # TODO ljud när Farore uppenbarar sig
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0317-2 faronskogen_farore.png"
-        params:
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-          visible: true
-          entityId: "faronskogen_gron"
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0317-1 goddess reveal.wav"
-  "322":
-    prompt: "Lycka till! [Farore och Nayru går av scen]"
-    next: "333"
-    actions:
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "faronskogen_gron"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "333":
-    prompt: "Jag tror att du kommer ha mer användning av den än jag. [Link går mot nöten]"
-    next: "336a"
-    # Missing from new drive after migration as of 2025-02-01
-    # actions:
-    #   - target: "audio"
-    #     cmd: "create"
-    #     assets:
-    #       - path: "Till föreställningen/0333 nytt foremal.wav"
-  "336a":
-    prompt: "Vi ska ju inte glömma nöten. [Link och vännen går av scen]"
-    next: "336b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0336-1 loading3a.mp4"
-        params:
-          entityId: "loading3a"
-          visible: true
-          destroyOnEnd: false
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "336b":
-    prompt: "[Lite omriggning]"
-    next: "336c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0336-2 loading3b.mp4"
-        params:
-          entityId: "loading3b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading3a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "faronskogen"
-  "336c":
-    prompt: "[Lite omriggning till]"
-    next: "336d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0336-3 loading3c.mp4"
-        params:
-          entityId: "loading3c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading3b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "336d":
-    prompt: "[Tältet är upphissat och Ganon sitter ned]"
-    next: "336e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0336-4 loading3d.mp4"
-        params:
-          entityId: "loading3d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading3c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "336e":
-    prompt: "[Laddbar full]"
-    next: "342"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0337 gerudo tent.png"
-        params:
-          entityId: "gerudo_talt"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading3d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "342":
-    prompt: "Att jag inte kommer räcka till. Om jag bara hade min mors styrka... [på 'bara']"
-    next: "414a"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0342 Styrka.mp4"
-        params:
-          visible: true
-          entityId: "styrka"
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "gerudo_talt"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "414a":
-    prompt: "Mot Hyrulien! För Ganondorf! [Ganon går av scen]"
-    next: "414b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0414-1 loading4a.mp4"
-        params:
-          entityId: "loading4a"
-          visible: true
-          destroyOnEnd: false
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "414b":
-    prompt: "[Lite omriggning]"
-    next: "414c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0414-2 loading4b.mp4"
-        params:
-          entityId: "loading4b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading4a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "gerudo_talt"
-  "414c":
-    prompt: "[Lite omriggning till]"
-    next: "414d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0414-3 loading4c.mp4"
-        params:
-          entityId: "loading4c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading4b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "414d":
-    prompt: "[Zelda och kungen samt tronen och bordet är på plats]"
-    next: "414e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0414-4 loading4d.mp4"
-        params:
-          entityId: "loading4d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading4c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "414e":
-    prompt: "[Laddbar full]"
-    next: "472"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0440 Tronsal.png"
-        params:
-          entityId: "tronsal"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading4d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "472":
-    prompt: "Link! [Link går av scen]"
-    next: "473"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0472 kruka1.wav"
-  "473":
-    prompt: "Nej!"
-    next: "478"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0472 kruka2.wav"
-  "478":
-    prompt: "Här, bara ta den! [Link håller upp kristallen]"
-    next: "491a"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0478 WIP_LinkHittarLilaRupee.mp4"
-        params:
-          visible: true
-  "491a":
-    prompt: "Nåväl. Jag ska lämna er två ifred."
-    next: "502"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0491 Tronsal_Zelda.png"
-        params:
-          entityId: "tronsal_zelda"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 20
-            to: 1
-  "502":
-    prompt: "Och du har hittat ett nytt svärd också. Fint. [Link övar lite med sitt svärd, vänta, synka med ljuspersonen]"
-    next: "502b"
-    actions:
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal"
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0502-2 Tronsal_Zelda_bla_gron_rod.png"
-        params:
-          entityId: "tronsal_zelda_bla_gron_rod"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0502 gudinnornas entre.mp4"
-        params:
-          visible: true
-  "502b":
-    prompt: "[Starta om ljudkomponenten när ljudet är klart]"
-    next: "537"
-  "537":
-    prompt: "Du ska ut på fler äventyr! [Link och Farore går av scen]"
-    next: "539"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0537 Tronsal_Zelda_bla_rod.png"
-        params:
-          entityId: "tronsal_zelda_bla_rod"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda"
-  "539":
-    prompt: "Intressant. [Nayru avfärdar Fejk-Diin]"
-    next: "548a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0539 Tronsal_Zelda_bla.png"
-        params:
-          entityId: "tronsal_zelda_bla"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda_bla_gron_rod"
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0539 dismiss fejkdiin.wav"
-        params:
-          entityId: "dismiss_fejkdiin"
-  "548a":
-    prompt: "Jag ska göra dig stolt [Nayru går av scen]"
-    next: "548b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0548-1 loading5a.mp4"
-        params:
-          entityId: "loading5a"
-          visible: true
-          destroyOnEnd: false
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "548b":
-    prompt: "[Lite omriggning]"
-    next: "548c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0548-2 loading5b.mp4"
-        params:
-          entityId: "loading5b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading5a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda_bla_rod"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda_bla"
-  "548c":
-    prompt: "[Lite omriggning till]"
-    next: "548d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0548-3 loading5c.mp4"
-        params:
-          entityId: "loading5c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading5b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "548d":
-    prompt: "[Rådgivare och Zelda på scen]"
-    next: "548e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0548-4 loading5d.mp4"
-        params:
-          entityId: "loading5d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading5c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "548e":
-    prompt: "[Laddbar full]"
-    next: "556"
-    actions:
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading5d"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "556":
-    prompt: "[Kort därefter]"
-    next: "698"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0554 Krigsmontage1.mp4"
-        params:
-          entityId: "kriget_1"
-          visible: true
-          destroyOnEnd: false
-  "698":
-    prompt: "Min frysbesvärjelse håller inte för evigt! [Link går av scen]"
-    next: "699"
-    actions:
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "kriget_1"
-          target: 0
-          time: 1
-          stopOnDone: true
-  "699":
-    prompt: "[Ganon, Diin, kungen, rådgivaren är på plats]"
-    next: "701a"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part1.webm"
-        params:
-          entityId: "krig2"
-          visible: true
-          looping: 0
-          seamless: true
-          mimeCodec: 'video/webm; codecs="vp9, opus"'
-          fadeIn:
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part2.webm"
-        params:
-          entityId: "krig2"
-      - target: "video"
-        cmd: "set_volume"
-        params:
-          entityId: "krig2"
-          volume: 0
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part1.wav"
-        params:
-          entityId: "krig2_audio"
-          looping: 0
-          seamless: true
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part2.wav"
-        params:
-          entityId: "krig2_audio"
-  "701a":
-    prompt: "Det är dags att kriget får ett slut"
-    next: "701b"
-    actions:
-      - target: "video"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part3.webm"
-        params:
-          entityId: "krig2"
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part3.wav"
-        params:
-          entityId: "krig2_audio"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda_kaos"
-  "701b":
-    prompt: "[Vampen slut, nästan direkt]"
-    next: "710"
-    actions:
-      - target: "video"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part4.webm"
-        params:
-          entityId: "krig2"
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part4.wav"
-        params:
-          entityId: "krig2_audio"
-  "710":
-    prompt: "Men hon är som besatt av sina magiska artefakter."
-    next: "733a"
-    actions:
-      - target: "video"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part5.webm"
-        params:
-          entityId: "krig2"
-      - target: "video"
-        cmd: "set_loops"
-        params:
-          entityId: "krig2"
-          looping: 1
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/0699 Krigsmontage2_part5.wav"
-        params:
-          entityId: "krig2_audio"
-      - target: "audio"
-        cmd: "set_loops"
-        params:
-          entityId: "krig2_audio"
-          looping: 1
-  "733a":
-    prompt: "[Låten slut, ljuset släcks]"
-    next: "733b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0733-1 loading6a.mp4"
-        params:
-          entityId: "loading6a"
-          visible: true
-          destroyOnEnd: false
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "733b":
-    prompt: "[Lite omriggning]"
-    next: "733c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0733-2 loading6b.mp4"
-        params:
-          entityId: "loading6b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading6a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "tronsal_zelda_kaos"
-  "733c":
-    prompt: "[Lite omriggning till]"
-    next: "733d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0733-3 loading6c.mp4"
-        params:
-          entityId: "loading6c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading6b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "733d":
-    prompt: "[Zelda är ensam på scen]"
-    next: "733e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0733-4 loading6d.mp4"
-        params:
-          entityId: "loading6d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading6c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "733e":
-    prompt: "[Laddbar full]"
-    next: "742"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0734 Tronsal_Zelda_krig.png"
-        params:
-          entityId: "tronsal_zelda_krig"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading6d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "742":
-    prompt: "Den dåliga nyheten är att Ganondorfs styrkor också är här."
-    next: "756"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0742 stridstrumpeter.wav"
-  "756":
-    prompt: "Link, uppehåll honom!"
-    next: "783"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0782 bakgrund.png"
-        params:
-          entityId: "tomma_hjartan"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0756 ForstaDuellen.mp4"
-        params:
-          visible: true
-  "783":
-    prompt: "Link!"
-    next: "806"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0783-1 Fairy revive.mp4"
-        params:
-          entityId: "fairy_revive"
-          layer: 1
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "tomma_hjartan"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "806":
-    prompt: "Döda honom. Nu! [Ganon sticker svärdet i kungen]"
-    next: "961"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0806 Aktfinal.mp4"
-        params:
-          entityId: "aktfinal"
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "tronsal_zelda_krig"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "961":
-    prompt: "[Innan andra akt, stara om ljudkomponenten]"
-    next: "961b"
-  "961b":
-    prompt: "[Redo för akt 2]"
-    next: "988a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0107 Vardagsrum.png"
-        params:
-          entityId: "vardagsrum"
-          visible: true
-  "988a":
-    prompt: "Lämna mig inte ensam, annars säger jag till mamma!"
-    next: "988b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0988-1 loading7a.mp4"
-        params:
-          entityId: "loading7a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "988b":
-    prompt: "[Lite omriggning]"
-    next: "988c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0988-2 loading7b.mp4"
-        params:
-          entityId: "loading7b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading7a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "vardagsrum"
-  "988c":
-    prompt: "[Lite omriggning till]"
-    next: "988d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0988-3 loading7c.mp4"
-        params:
-          entityId: "loading7c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading7b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "988d":
-    prompt: "[Vännen är på plats, fåtöljen är borta]"
-    next: "988e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0988-4 loading7d.mp4"
-        params:
-          entityId: "loading7d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading7c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "988e":
-    prompt: "[Laddbar full]"
-    next: "991"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0989 kakariko_plundered.png"
-        params:
-          entityId: "kakariko"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading7d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "991":
-    prompt: "Hej! Lyssna! [Pass på!]"
-    next: "997"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0991 kakariko_plundered_farore.png"
-        params:
-          entityId: kakariko_plundered_farore
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "997":
-    prompt: "Nåd! Snälla herr rövare, vi har inga fler nötter! Vi har ingenting kvar!"
-    next: "999"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0997 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay997"
-  "999":
-    prompt: "Link! Prisa gudinnorna, det är du!"
-    next: "1000"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/0999 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay999"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay997"
-  "1000":
-    prompt: "Det är fruktansvärt..."
-    next: "1001"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1000 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay999"
-  "1001":
-    prompt: "Vi kan hoppa över, det är inte viktigt."
-    next: "1002"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1001 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1002":
-    prompt: "Och gamle Bo är död... [när?]"
-    next: "1003"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1002 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-  "1003":
-    prompt: "Hoppa över."
-    next: "1004"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1003 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1004":
-    prompt: "Och Saria är försvunnen... [när?]"
-    next: "1005"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1004 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-  "1005":
-    prompt: "Hoppa över."
-    next: "1006"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1005 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1006":
-    prompt: "Har du kommit för att rädda oss? [när?]"
-    next: "1009"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1006 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1006"
-  "1009":
-    prompt: 'Du... följer en karta? Vart leder den? "Skymningsspegeln"? [när?]'
-    next: "1011a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1009 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1009"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1006"
-  "1011a":
-    prompt: '"Du är vårt enda hopp"... "Zelda" [när?]'
-    next: "1011b"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1011-1 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1011_1"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1009"
-  "1011b":
-    prompt: "Har du fått ett uppdrag från prinsessan? Ska du rädda oss från Ganondorf i alla fall? [när?]"
-    next: "1013"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1011-2 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1011_2"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1011_1"
-  "1013":
-    prompt: "Och du behöver hjälp att läsa kartan? [när?]"
-    next: "1015"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1013 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1013"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1011_2"
-  "1015":
-    prompt: "Ja, okej... Men det är farligt där ute! Är du säker på att vi klarar det? [när?]"
-    next: "1017"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1015 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1015"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1013"
-  "1017":
-    prompt: "Ja men då så! Du verkar veta vad du gör. Vilken tur att jag sprang på någon så modig som du! [när?]"
-    next: "1019"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1017 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1017"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1015"
-  "1019":
-    prompt: "Det är hitåt! [när?]"
-    next: "1021a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1019 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1019"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1017"
-  "1021a":
-    prompt: "[Link och vännen går av scen]"
-    next: "1021b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1021-1 loading8a.mp4"
-        params:
-          entityId: "loading8a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1021b":
-    prompt: "[Lite omriggning]"
-    next: "1021c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1021-2 loading8b.mp4"
-        params:
-          entityId: "loading8b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading8a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "kakariko"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "kakariko_plundered_farore"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1019"
-  "1021c":
-    prompt: "[Lite omriggning till]"
-    next: "1021d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1021-3 loading8c.mp4"
-        params:
-          entityId: "loading8c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading8b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1021d":
-    prompt: "[Zelda är ensam och stilla på scen]"
-    next: "1021e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1021-4 loading8d.mp4"
-        params:
-          entityId: "loading8d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading8c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1021e":
-    prompt: "[Laddbar full]"
-    next: "1028"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1022 dungeon.png"
-        params:
-          entityId: "dungeon"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading8d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1028":
-    prompt: "Ganondorf. Du kommer ångra det här."
-    next: "1079a"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1028 Ganon_Zelda-AB.wav"
-  "1079a":
-    prompt: "[Ganon går av scen, ljuset dunklas]"
-    next: "1079b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1034-1 loading9a.mp4"
-        params:
-          entityId: "loading9a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1079b":
-    prompt: "[Lite omriggning]"
-    next: "1079c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1034-2 loading9b.mp4"
-        params:
-          entityId: "loading9b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading9a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "dungeon"
-  "1079c":
-    prompt: "[Lite omriggning till]"
-    next: "1079d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1034-3 loading9c.mp4"
-        params:
-          entityId: "loading9c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading9b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1079d":
-    prompt: "[Altaret och monstret är på plats]"
-    next: "1079e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1034-4 loading9d.mp4"
-        params:
-          entityId: "loading9d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading9c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1079e":
-    prompt: "[Laddbar full]"
-    next: "1133"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1130 dekutree_dark.png"
-        params:
-          entityId: "deku_dark"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading9d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1133":
-    prompt: "[Suck] Här ska det vara... Men det är nåt med den här platsen..."
-    next: "1134"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1133 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-  "1134":
-    prompt: "Hoppa över."
-    next: "1135"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1134 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1135":
-    prompt: "Det känns som att en stor ondska har... [när?]"
-    next: "1136"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1135 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-  "1136":
-    prompt: "Hoppa över."
-    next: "1137"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1136 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1137":
-    prompt: "En så vacker plats, helt förstörd... [när?]"
-    next: "1138"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1137 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay"
-  "1138":
-    prompt: "Hoppa över! Jag vill bara veta vart kartan leder!"
-    next: "1139"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1138 skip.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay"
-          stopOnDone: true
-  "1139":
-    prompt: "Kolla! Det där måste vara skymningsspegeln. [när?]"
-    next: "1141"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1139 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1139"
-  "1141":
-    prompt: "Den vaktas av ett monster! Vad bra att du såg det... [när?]"
-    next: "1143"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1141 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1141"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1139"
-  "1143":
-    prompt: "Måste vi slåss mot den? Det är en sån farlig, med horn... [när?]"
-    next: "1146"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1143 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1143"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1141"
-  "1146":
-    prompt: "Okej. Om du säger att vi måste så måste vi. [när?]"
-    next: "1147"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1146 Overlay.png"
-        params:
-          visible: true
-          entityId: "overlay1146"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "overlay1143"
-  "1147":
-    prompt: "Jag litar på dig med mitt liv. [Låt, inte dialogbox]"
-    next: "1147b"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1164 dekutree_no_face.png"
-        params:
-          visible: true
-          entityId: "deku_no_face1"
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1147 Boss_Fight.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "overlay1146"
-          stopOnDone: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "deku_dark"
-          stopOnDone: true
-  "1147b":
-    prompt: "[När ljudperson har fadeat ner manuellt, stäng av låt och säg till]"
-    next: "1176a"
-  "1176a":
-    prompt: "Du får sörja honom när du räddat världen. [Link stoppar undan mössan och går fram mot spegeln]"
-    next: "1178"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1176-2 Deku1 still.png"
-        params:
-          entityId: "deku1_still"
-          visible: true
-          fadeIn:
-            time: 1
-            to: 1
-            from: 0
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "deku_no_face1"
-          stopOnDone: true
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1176-1 replik Deku1.mp4"
-        params:
-          visible: true
-  "1178":
-    prompt: "Vi kan hoppa över det här. [Lite innan Farore trycker på knappen]"
-    next: "1238a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1227 dekutree_no_face.png"
-        params:
-          entityId: "dekutree_no_face"
-          visible: true
-          fadeIn:
-            time: 1
-            to: 1
-            from: 0
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1178 Legenden.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          entityId: "deku1_still"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1238a":
-    prompt: "[Farore går av scen med en suck, Nayru står kvar och pratar]"
-    next: "1238b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1238-1 loading10a.mp4"
-        params:
-          entityId: "loading10a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1238b":
-    prompt: "[Lite omriggning]"
-    next: "1238c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1238-2 loading10b.mp4"
-        params:
-          entityId: "loading10b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading10a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "dekutree_no_face"
-  "1238c":
-    prompt: "[Lite omriggning till]"
-    next: "1238d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1238-3 loading10c.mp4"
-        params:
-          entityId: "loading10c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading10b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1238d":
-    prompt: "[Ännu mer omriggning]"
-    next: "1238e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1238-4 loading10d.mp4"
-        params:
-          entityId: "loading10d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading10c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1238e":
-    prompt: "Två och två i tid"
-    next: "1242"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1239 dungeon.png"
-        params:
-          entityId: "dungeon"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading10d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1242":
-    prompt: "Och i vilket fall som helst är jag steget före."
-    next: "1276a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1242-2 dungeon_nayru.png"
-        params:
-          entityId: "dungeon_nayru"
-          visible: true
-          fadeIn:
-            time: 1
-            to: 1
-            from: 0
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1242-1 goddess reveal.wav"
-  "1276a":
-    prompt: "Min drottning. [Alla går av scen]"
-    next: "1276b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1276-1 loading11a.mp4"
-        params:
-          entityId: "loading11a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1276b":
-    prompt: "[Lite omriggning]"
-    next: "1276c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1276-2 loading11b.mp4"
-        params:
-          entityId: "loading11b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading11a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "dungeon"
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "dungeon_nayru"
-  "1276c":
-    prompt: "[Lite omriggning till]"
-    next: "1276d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1276-3 loading11c.mp4"
-        params:
-          entityId: "loading11c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading11b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1276d":
-    prompt: "[Ganon har satt sig på sin tron och är ensam på scen]"
-    next: "1276e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1276-4 loading11d.mp4"
-        params:
-          entityId: "loading11d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading11c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1276e":
-    prompt: "[Laddbar full]"
-    next: "1283"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1277 Tronsal_Ganon_bleak.png"
-        params:
-          entityId: "tronsal_ganon_bleak"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading11d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1283":
-    prompt: "...bara är en rövare. [på 'rövare']"
-    # TODO: Kolla på manuell fade in från alla cues-dokumentet
-    next: "1309"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1286 Andra_duellen.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_ganon_bleak"
-          stopOnDone: true
-  "1309":
-    prompt: "[Efter låten]"
-    next: "1319"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1309 Tronsal_Ganon.png"
-        params:
-          entityId: "tronsal_ganon"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-  "1319":
-    prompt: "Va? Vad sa du, din fegis? [Farore går av]"
-    next: "1384"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1319 skymningsspegeln.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 0
-          entityId: "tronsal_ganon"
-          stopOnDone: true
-  "1384":
-    prompt: "[Låt slut]"
-    next: "1390"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1384 Tronsal_Ganon_bla.png"
-        params:
-          entityId: "tronsal_ganon_bla"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 3
-            to: 1
-  "1390":
-    prompt: "Som ingen annan än du förstår. Bra gjort. [Nayru går av scen]"
-    next: "1402"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1390 Tronsal_Ganon.png"
-        params:
-          entityId: "tronsal_ganon"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_ganon_bla"
-          stopOnDone: true
-  "1402":
-    prompt: "[Zelda tar på kronan] Gudinnornas spel..."
-    next: "1403"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1402 Victory screen 1.png"
-        params:
-          entityId: "victory"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_ganon"
-          stopOnDone: true
-  "1403":
-    prompt: "[Fåtölj ute, Nayru sitter i]"
-    next: "1419"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1403 Vardagsrum.png"
-        params:
-          entityId: "vardagsrum"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 0
-          entityId: "victory"
-          stopOnDone: true
-  "1419":
-    prompt: "Nähä. Okej. [Nayru trollar fram fejkdiin]"
-    next: "1425"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1419 summon fejkdiin.wav"
-  "1425":
-    prompt: "[Nayru gör gest och trollar bort fejk-Diin, håll utkik]"
-    next: "1430a"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1425 dismiss fejkdiin.wav"
-  "1430a":
-    prompt: "Jodå. Det blir alltid en nästa omgång."
-    next: "1430b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1430-1 loading12a.mp4"
-        params:
-          entityId: "loading12a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1430b":
-    prompt: "[Lite omriggning]"
-    next: "1430c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1430-2 loading12b.mp4"
-        params:
-          entityId: "loading12b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading12a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "image"
-        cmd: "destroy"
-        params:
-          entityId: "vardagsrum"
-  "1430c":
-    prompt: "[Lite omriggning till]"
-    next: "1430d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1430-3 loading12c.mp4"
-        params:
-          entityId: "loading12c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading12b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1430d":
-    prompt: "[Scenen är tom]"
-    next: "1430e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1430-4 loading12d.mp4"
-        params:
-          entityId: "loading12d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading12c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1430e":
-    prompt: "[Laddbar full]"
-    next: "1489a"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1431-1 skymningslandet_videoloop.mp4"
-        params:
-          entityId: "skymningslandet"
-          visible: true
-          looping: 0
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1431-2 Skymningslandet.wav"
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading12d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1489a":
-    prompt: "Jag tror jag har en idé..."
-    next: "1489b"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1489-1 loading13a.mp4"
-        params:
-          entityId: "loading13a"
-          visible: true
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-          destroyOnEnd: false
-  "1489b":
-    prompt: "[Lite omriggning]"
-    next: "1489c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1489-2 loading13b.mp4"
-        params:
-          entityId: "loading13b"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading13a"
-          target: 1
-          time: 1
-          stopOnDone: true
-      - target: "video"
-        cmd: "destroy"
-        params:
-          entityId: "skymningslandet"
-  "1489c":
-    prompt: "[Lite omriggning till]"
-    next: "1489d"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1489-3 loading13c.mp4"
-        params:
-          entityId: "loading13c"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading13b"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1489d":
-    prompt: "[Zelda är på plats, ensam på knä]"
-    next: "1489e"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1489-4 loading13d.mp4"
-        params:
-          entityId: "loading13d"
-          visible: true
-          destroyOnEnd: false
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading13c"
-          target: 1
-          time: 1
-          stopOnDone: true
-  "1489e":
-    prompt: "[Laddbar full]"
-    next: "1494"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1490 Tronsal_Zelda.png"
-        params:
-          entityId: "tronsal_zelda"
-          visible: true
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "loading13d"
-          target: 1
-          time: 2
-          stopOnDone: true
-  "1494":
-    prompt: "Vad är det nu då. [Nayru visar sig]"
-    next: "1498"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1494-2 Tronsal_Zelda_bla.png"
-        params:
-          entityId: "tronsal_zelda_bla"
-          visible: true
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_zelda"
-          stopOnDone: true
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1494-1 goddess reveal.wav"
-  "1498":
-    prompt: "Det är omöjligt! [Link och Ganon rusar in]"
-    next: "1507"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1498 Duell3_part1.wav"
-        params:
-          entityId: duell3
-          looping: 0
-          seamless: true
-      - target: "audio"
-        cmd: "set_next_file"
-        assets:
-          - path: "Till föreställningen/1498 Duell3_part2.wav"
-        params:
-          entityId: "duell3"
-  "1507":
-    prompt: "Jag är också här! [Diin och Farore kommer in och nickar åt varandra]"
-    next: "1512"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1507-2 Tronsal_Zelda_bla_gron_rod.png"
-        params:
-          visible: true
-          entityId: "tronsal_zelda_bla_gron_rod"
-          fadeIn:
-            from: 0
-            time: 1
-            to: 1
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_zelda_bla"
-          stopOnDone: true
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1507-1 goddess reveal.wav"
-  "1512":
-    prompt: "Vad har ni gjort? [Farore lägger armarna runt sina systrar]"
-    next: "1518"
-    actions:
-      - target: "audio"
-        cmd: "destroy"
-        # cmd: "fade"
-        params:
-          entityId: duell3
-          # time: 0.5
-          # target: 0
-          # stopOnDone: true
-  "1518":
-    prompt: "Redo. [Link nickar]"
-    next: "1635"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1518 Den Sista Striden.mp4"
-        params:
-          visible: true
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 1
-          target: 1
-          entityId: "tronsal_zelda_bla_gron_rod"
-          stopOnDone: true
-  "1635":
-    prompt: "[Efter låten, när det känns bra]"
-    next: "1637a"
-    actions:
-      - target: "image"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1635 Victory screen 2.png"
-        params:
-          entityId: "victory"
-          visible: true
-          layer: 1
-          fadeIn:
-            time: 3
-            to: 1
-            from: 0
-  "1637a":
-    prompt: "[Bord på scen, person som bar in det av scen]"
-    next: "1718a"
-    actions:
-      - target: "image"
-        cmd: "fade"
-        params:
-          time: 3
-          target: 0
-          entityId: "victory"
-          stopOnDone: true
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1637 Epilog.mp4"
-        params:
-          visible: true
-  "1718a":
-    prompt: "[Applådtack]"
-    next: "1718b"
-    actions:
-      - target: "audio"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1718 Appladtack.wav"
-  "1718b":
-    prompt: "[Appllådtack klart]"
-    next: "1718c"
-    actions:
-      - target: "video"
-        cmd: "create"
-        assets:
-          - path: "Till föreställningen/1431-1 skymningslandet_videoloop.mp4"
-        params:
-          entityId: "skymningslandet"
-          visible: true
-          looping: 0
-          fadeIn:
-            from: 0
-            to: 1
-            time: 1
-  "1718c":
-    prompt: 'Vad hände med "Det blir alltid en nästa omgång"?'
-    next: "1718d"
-    actions:
-      - target: "video"
-        cmd: "fade"
-        params:
-          entityId: "skymningslandet"
-          target: 0
-          time: 2
-          stopOnDone: true
-  "1718d":
-    prompt: "[Nu är vi klara!]"
-    next: "1"
-
+  1a:
+    prompt: '[AKT 1]'
+    actions: []
+    next: 8a
+  8a:
+    prompt: '[Rektorns välkomstlåt]<br>Rektorn: "hälsa er välkomna hit till Soldala!"'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/8a ouvertyr a.webm
+      params:
+        entityId: 8a ouvertyr a - video
+        visible: true
+        layer: 1080
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: 8b
+  8b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/8b ouvertyr b.png
+      params:
+        entityId: 8b ouvertyr b - image
+        visible: true
+        layer: 1075
+    next: '25'
+  '25':
+    prompt: '[Låten fortsätter]<br>Elever: "ååh" och går av scen'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/25 ouvertyr c.webm
+      params:
+        entityId: 25 ouvertyr c - video
+        visible: true
+        layer: 1250
+        mimeCodec: video/webm; codecs="vp9, opus"
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 8b ouvertyr b - image
+    next: 32a
+  32a:
+    prompt: '[Alices sång]<br>Scenen är tom'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/32a vem ar jag 1a.webm
+      params:
+        entityId: 32a vem ar jag 1a - video
+        visible: true
+        layer: 1320
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: 32b
+  32b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/32b korridor 1.png
+      params:
+        entityId: 32b korridor 1 - image
+        visible: true
+        layer: 1315
+    next: '84'
+  '84':
+    prompt: '[Alices sång forts]<br>Leo: vi ses igen snart'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/84 vem ar jag 1b.webm
+      params:
+        entityId: 84 vem ar jag 1b - video
+        visible: true
+        layer: 1840
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: '102'
+  '102':
+    prompt: '[Alices sång avslutning]<br>Flisan: Ses på musikalen, Alice.'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/102 vem ar jag 1c.mp3
+      params:
+        entityId: 102 vem ar jag 1c - audio
+    next: '114'
+  '114':
+    prompt: '[Döda bakgrundsbild]<br>Alice: Jag kan söka musikalen!'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 32b korridor 1 - image
+    - target: audio
+      cmd: destroy
+      params:
+        entityId: 102 vem ar jag 1c - audio
+    next: '116'
+  '116':
+    prompt: '[Bakgrund: källaren]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/116 kallare.png
+      params:
+        entityId: 116 kallare - image
+        visible: true
+        layer: 2160
+    next: '133'
+  '133':
+    prompt: '[Ebenholts trollar]<br>Suzy: Perfekt gömställe om man inte bara är en
+      tjej.'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/133 magi avbruten.mp3
+      params:
+        entityId: 133 magi avbruten - audio
+    next: '176'
+  '176':
+    prompt: '[Bakgrund: rekvisitaförrådet]<br>Scenen är tom'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/176 rekvisita 1.png
+      params:
+        entityId: 176 rekvisita 1 - image
+        visible: true
+        layer: 2760
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 116 kallare - image
+    next: '177'
+  '177':
+    prompt: '[Smygmusik]<br>Klädställning på plats, Suzy kommer in på scen'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/177 vampyrfajt.webm
+      params:
+        entityId: 177 vampyrfajt - video
+        visible: true
+        layer: 2770
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: '183'
+  '183':
+    prompt: '[Döda bakgrundsbild, bakom filmen]'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 176 rekvisita 1 - image
+    next: '185'
+  '185':
+    prompt: '[Bakgrund: Rektorns kontor]<br>Skrivbordet är på plats'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/185 rektorns kontor 1a.png
+      params:
+        entityId: 185 rektorns kontor 1a - image
+        visible: true
+        layer: 2850
+    next: 188a
+  188a:
+    prompt: '[Rektorn skriver]<br>Rektorn: "svara"'
+    actions: []
+    next: 188b
+  188b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/188b rektorns kontor 1b_b.png
+      params:
+        entityId: 188b rektorns kontor 1b_b - image
+        visible: true
+        layer: 2875
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 185 rektorns kontor 1a - image
+    next: 189a
+  189a:
+    prompt: '[Datorn funkar igen]<br>"Du ska funka!" +2s'
+    actions: []
+    next: 189b
+  189b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/189b rektorns kontor 1c_b.png
+      params:
+        entityId: 189b rektorns kontor 1c_b - image
+        visible: true
+        layer: 2885
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 188b rektorns kontor 1b_b - image
+    next: 193a
+  193a:
+    prompt: '[Rektorns sång]<br>"Och teaterbyggnaden är K-märkt."'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/193a rektorns kontor 1d_a.mp3
+      params:
+        entityId: 193a rektorns kontor 1d_a - audio
+    next: 193b
+  193b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/193b rektorns kontor 1d_b.png
+      params:
+        entityId: 193b rektorns kontor 1d_b - image
+        visible: true
+        layer: 2925
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 189b rektorns kontor 1c_b - image
+    next: 241a
+  241a:
+    prompt: '[Nytt mejl]<br>Applåderna tar slut'
+    actions: []
+    next: 241b
+  241b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/241b rektorns kontor 1e_b.png
+      params:
+        entityId: 241b rektorns kontor 1e_b - image
+        visible: true
+        layer: 3405
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 193b rektorns kontor 1d_b - image
+    next: 244a
+  244a:
+    prompt: '[Underskrift]<br>"Godkänn!"'
+    actions: []
+    next: 244b
+  244b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/244b rektorns kontor 1f_b.png
+      params:
+        entityId: 244b rektorns kontor 1f_b - image
+        visible: true
+        layer: 3435
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 241b rektorns kontor 1e_b - image
+    next: '247'
+  '247':
+    prompt: '[Demonkontrakt]<br>Rektorn går av scen.'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 244b rektorns kontor 1f_b - image
+    next: '248'
+  '248':
+    prompt: '[Bakgrund: musikalrum]<br>Leo sitter på sin stol.'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/248 musikalrum 1.png
+      params:
+        entityId: 248 musikalrum 1 - image
+        visible: true
+        layer: 3480
+    next: '315'
+  '315':
+    prompt: '[de Vergs entré]<br>A: "Kan man inte känna igen en vampyr?"'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/315 de verg entre.mp3
+      params:
+        entityId: 315 de verg entre - audio
+    next: '344'
+  '344':
+    prompt: '[Klockan]<br>"Hitta sig själv däri" +1s'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/344 skolklockan.mp3
+      params:
+        entityId: 344 skolklockan - audio
+    next: '367'
+  '367':
+    prompt: '[Döda bakgrunden]'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 248 musikalrum 1 - image
+    next: '368'
+  '368':
+    prompt: '[Bakgrund: musikalrum]<br>Ebenholts sitter på kistan.'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/368 musikalrum 1.png
+      params:
+        entityId: 368 musikalrum 1 - image
+        visible: true
+        layer: 4680
+    next: '394'
+  '394':
+    prompt: '[Ebenholts trollar]<br>De har sjungit TILLSAMMANS två vändor'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/394 magi vampyrer.mp3
+      params:
+        entityId: 394 magi vampyrer - audio
+    next: '407'
+  '407':
+    prompt: '[Kärlekstriangel]<br>Alice: "Ska vi repa?"'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/407 karlekstriangel.mp3
+      params:
+        entityId: 407 karlekstriangel - audio
+    next: '525'
+  '525':
+    prompt: '[Döda bakgrunden]<br>"De få vampyrer som finns kvar, vet vad som är bäst
+      för dem"'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 368 musikalrum 1 - image
+    next: '526'
+  '526':
+    prompt: '[Bakgrund: korridor]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/526 korridor 2.png
+      params:
+        entityId: 526 korridor 2 - image
+        visible: true
+        layer: 6260
+    next: '589'
+  '589':
+    prompt: '[Döda bakgrunden]<br>Ebenholts går av scen'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 526 korridor 2 - image
+    next: 590a
+  590a:
+    prompt: '[Ljudet av floden]<br>Scenen är tom'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/590a viskan.mp3
+      params:
+        entityId: 590a viskan - audio
+    next: 590b
+  590b:
+    prompt: '[Bakgrund: skogen]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/590b skogen.png
+      params:
+        entityId: 590b skogen - image
+        visible: true
+        layer: 6900
+    next: '662'
+  '662':
+    prompt: '[Rap battle]<br>Suzy: "Bort från Alice, nu!"'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/662 fajt 1.webm
+      params:
+        entityId: 662 fajt 1 - video
+        visible: true
+        layer: 7620
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: '664'
+  '664':
+    prompt: '[Döda bakgrundsbild, bakom filmen]'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 590b skogen - image
+    next: 741a
+  741a:
+    prompt: '[AKT 2]'
+    actions: []
+    next: 741b
+  741b:
+    prompt: '[Bakgrund: musikalrum]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/741b musikalrum 2.png
+      params:
+        entityId: 741b musikalrum 2 - image
+        visible: true
+        layer: 8410
+    next: '859'
+  '859':
+    prompt: '[Döda bakgrunden]<br>Alla: "För musikalen!"'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 741b musikalrum 2 - image
+    next: '860'
+  '860':
+    prompt: '[Bakgrund: klassrum]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/860 klassrum 1.png
+      params:
+        entityId: 860 klassrum 1 - image
+        visible: true
+        layer: 9600
+    next: '920'
+  '920':
+    prompt: '[QR-kod]<br>Alice: "tar du swish?"'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/920 qr_kod.png
+      params:
+        entityId: 920 qr_kod - image
+        visible: true
+        layer: 10200
+    next: '924'
+  '924':
+    prompt: '[Döda alla bilder]<br>Alice går av scen'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 860 klassrum 1 - image
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 920 qr_kod - image
+    next: '926'
+  '926':
+    prompt: '[Bakgrund: Rektorns kontor]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/926 rektorns kontor 2a.png
+      params:
+        entityId: 926 rektorns kontor 2a - image
+        visible: true
+        layer: 10260
+    next: 928a
+  928a:
+    prompt: '[Dalle öppnar datorn]<br>Dalle börjar klicka'
+    actions: []
+    next: 928b
+  928b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/928b rektorns kontor 2b_b.png
+      params:
+        entityId: 928b rektorns kontor 2b_b - image
+        visible: true
+        layer: 10275
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 926 rektorns kontor 2a - image
+    next: '930'
+  '930':
+    prompt: '[Inställningsfönstret]<br>"Här! Inställningar."'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/930 rektorns kontor 2c.png
+      params:
+        entityId: 930 rektorns kontor 2c - image
+        visible: true
+        layer: 10300
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 928b rektorns kontor 2b_b - image
+    next: 935a
+  935a:
+    prompt: '[Rektorns sång 2]<br>Rektorn klickar på datorn'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/935a rektorns kontor 2d_a.webm
+      params:
+        entityId: 935a rektorns kontor 2d_a - video
+        visible: true
+        layer: 10350
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: 935b
+  935b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/935b rektorns kontor 2d_b.png
+      params:
+        entityId: 935b rektorns kontor 2d_b - image
+        visible: true
+        layer: 10345
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 930 rektorns kontor 2c - image
+    next: '968'
+  '968':
+    prompt: '[Döda bakgrunden]<br>Dalle går av scen'
+    actions: []
+    next: '969'
+  '969':
+    prompt: '[Bakgrund: klassrum]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/969 klassrum 2.png
+      params:
+        entityId: 969 klassrum 2 - image
+        visible: true
+        layer: 10690
+    next: '984'
+  '984':
+    prompt: '[Ebenholts trollar]<br>E: "Du låter inte som dig själv"'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/984 magi suzy.webm
+      params:
+        entityId: 984 magi suzy - video
+        visible: true
+        layer: 10840
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: '992'
+  '992':
+    prompt: '[Ebenholts hjärntvättad]<br>S sätter fast earpiece på E:s öra'
+    actions: []
+    next: '1013'
+  '1013':
+    prompt: '[Dalle hjärntvättad]<br>D tar på sig earpiece'
+    actions: []
+    next: '1038'
+  '1038':
+    prompt: '[Döda bakgrunden]'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 969 klassrum 2 - image
+    next: '1039'
+  '1039':
+    prompt: '[Bakgrund: korridor]<br>Skrivbordet är borta'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1039 korridor 3.png
+      params:
+        entityId: 1039 korridor 3 - image
+        visible: true
+        layer: 11390
+    next: '1080'
+  '1080':
+    prompt: '[Döda bakgrunden – med fade-out]<br>Flisan går av scen'
+    actions:
+    - target: image
+      cmd: fade
+      params:
+        entityId: 1039 korridor 3 - image
+        target: 0
+        time: 5.0
+        stopOnDone: true
+    next: '1089'
+  '1089':
+    prompt: '[Bakgrund: rekvisitaförrådet]<br>"Men jag kunde inte ens göra det" A
+      sätter sig ner'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1089 rekvisita 2.png
+      params:
+        entityId: 1089 rekvisita 2 - image
+        visible: true
+        layer: 11890
+        fadeIn:
+          from: 0
+          to: 1
+          time: 5.0
+    next: 1095a
+  1095a:
+    prompt: '[Regissörens sång]<br>de Verg hjälper A att ställa sig upp'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/1095a regissorens film.webm
+      params:
+        entityId: 1095a regissorens film - video
+        visible: true
+        layer: 11950
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: 1095b
+  1095b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1095b rekvisita 3.png
+      params:
+        entityId: 1095b rekvisita 3 - image
+        visible: true
+        layer: 11945
+    next: '1166'
+  '1166':
+    prompt: '[Döda bakgrunden]<br>De nickar åt varann och går iväg'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 1095b rekvisita 3 - image
+    next: '1167'
+  '1167':
+    prompt: '[Bakgrund: backstage]<br>Samtidigt som ljuset tänds'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1167 backstage.png
+      params:
+        entityId: 1167 backstage - image
+        visible: true
+        layer: 12670
+    next: '1178'
+  '1178':
+    prompt: '[Hjärntvätt-puls]<br>Suzy: "Vi behöver nog en lite högre inställning."'
+    actions: []
+    next: '1182'
+  '1182':
+    prompt: '[Alices sång 2]<br>Dalle: "Det kommer inte se bra ut på min performance
+      review'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/1182 vem ar jag 2a.mp3
+      params:
+        entityId: 1182 vem ar jag 2a - audio
+    next: '1218'
+  '1218':
+    prompt: '[Mellanspel vamp]<br>Automatiskt efter föregående'
+    actions: []
+    next: '1227'
+  '1227':
+    prompt: '[Resten av låten]<br>Dalle: "Vi älskar dig ändå!"'
+    actions: []
+    next: '1246'
+  '1246':
+    prompt: '[Döda bakgrunden]<br>Ljuset släcks, ridån börjar gå igen'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 1167 backstage - image
+    next: '1247'
+  '1247':
+    prompt: '[Bakgrund: Draculas hus]<br>Ridån är helt stängd'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1247 draculas hus.png
+      params:
+        entityId: 1247 draculas hus - image
+        visible: true
+        layer: 13470
+    next: '1258'
+  '1258':
+    prompt: '[Knackning]<br>Leo "knackar" i luften +1s'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/1258 knackning.mp3
+      params:
+        entityId: 1258 knackning - audio
+    next: 1260a
+  1260a:
+    prompt: '[All star 1]<br>Flisan kommer in på scen första gången'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/1260a all star 1.mp3
+      params:
+        entityId: 1260a all star 1 - audio
+    next: 1260b
+  1260b:
+    prompt: '[All star 2]<br>Flisan kommer in på scen andra gången'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/1260b all star 2.mp3
+      params:
+        entityId: 1260b all star 2 - audio
+    next: '1270'
+  '1270':
+    prompt: '[Sufflera: "Ja!"]<br>"Är du hungrig efter den långa färden" -> L vet
+      inte vad han ska säga'
+    actions: []
+    next: '1277'
+  '1277':
+    prompt: '[Thunderbolt 1]<br>L: "Tack för att du frågade."'
+    actions: []
+    next: '1279'
+  '1279':
+    prompt: '[Thunderbolt 2]<br>F: "Jag dricker inte... röd saft."'
+    actions: []
+    next: '1285'
+  '1285':
+    prompt: '[Bakgrund: Soldala-loggan]<br>Suzy kommer in på scen'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1285 soldala 1.png
+      params:
+        entityId: 1285 soldala 1 - image
+        visible: true
+        layer: 13850
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 1247 draculas hus - image
+    next: '1290'
+  '1290':
+    prompt: '[Rap battle 2]<br>Suzy slår Ebenholts'
+    actions: []
+    next: 1355a
+  1355a:
+    prompt: '[iPaden stängs ner]<br>Dalle: "Okej, jag kan göra det här. Jag kan data!]'
+    actions: []
+    next: 1355b
+  1355b:
+    prompt: '[BYT]'
+    actions:
+    - target: image
+      cmd: create
+      assets:
+      - path: media/1355b soldala 2.png
+      params:
+        entityId: 1355b soldala 2 - image
+        visible: true
+        layer: 14545
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 1285 soldala 1 - image
+    next: '1393'
+  '1393':
+    prompt: '[Pistolskott i slow-motion]<br>Rektorn: "Med nöje." -> Rektorn skjuter'
+    actions: []
+    next: '1401'
+  '1401':
+    prompt: '[Blodstänk]<br>Rektorn går av scen'
+    actions:
+    - target: video
+      cmd: create
+      assets:
+      - path: media/1401 blod.webm
+      params:
+        entityId: 1401 blod - video
+        visible: true
+        layer: 15010
+        mimeCodec: video/webm; codecs="vp9, opus"
+    next: '1409'
+  '1409':
+    prompt: '[Final-låten]<br>"...en oförglömlig upplevelse?" "Ja!"'
+    actions:
+    - target: audio
+      cmd: create
+      assets:
+      - path: media/1409 final.mp3
+      params:
+        entityId: 1409 final - audio
+    next: 1461a
+  1461a:
+    prompt: '[Slay-bakgrund]<br>Medan ridån är stängd'
+    actions:
+    - target: image
+      cmd: destroy
+      params:
+        entityId: 1355b soldala 2 - image
+    next: 1461b
+  1461b:
+    prompt: '[Applådtacks-musik]<br>Ridån börjar gå upp'
+    actions: []
+    next: 1a
 action_templates: {}
 assets:
-  "script":
-    path: "Legenden_om_Zelda_2023_12_08.pdf"
-    #path: "Zelda_manus_2024_02_13.pdf"
+  script:
+    path: Slay_20260206.pdf
 ui:
-  shortcuts:
-    - title: Agnes mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Agnes
-    - title: Agnes mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Agnes
-    - title: Ankas mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Anka
-    - title: Ankas mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Anka
-    - title: Arvids mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Arvid
-    - title: Arvids mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Arvid
-    - title: Idas mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Ida
-    - title: Idas mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Ida
-    - title: Jessicas mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Jessica
-    - title: Jessicas mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Jessica
-    - title: Mattes mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Matte
-    - title: Mattes mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Matte
-    - title: Rins mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Rin
-    - title: Rins mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Rin
-    - title: Signes mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Signe
-    - title: Signes mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Signe
-    - title: Tejps mygga trasig
-      actions:
-        - target: myggcheck
-          cmd: broken
-          params:
-            name: Tejp
-    - title: Tejps mygga fixad
-      actions:
-        - target: myggcheck
-          cmd: fixed
-          params:
-            name: Tejp
+  shortcuts: []
