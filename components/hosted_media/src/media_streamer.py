@@ -59,6 +59,7 @@ class _PlayingState:
     out_audio_stream: av.AudioStream
     input_container: av.container.InputContainer
     duration: float
+    decoded_audio_time: float
     jump_in_progress: _JumpInProgress | None
     next_video_timestamp: int  # In the time_base of the video stream
     next_audio_timestamp: int  # In the time_base of the audio stream
@@ -94,7 +95,11 @@ class MediaStreamer:
         return self.playing_state.duration
 
     def get_position(self) -> float:
-        return 0
+        if self.playing_state is None:
+            # This may be called before we've managed to get the duration from the input file, so we
+            # should return something. It will be 0 at the start anyway.
+            return 0
+        return self.playing_state.decoded_audio_time - STREAM_DELAY
 
     def stop(self) -> None:
         if self.stream_task is None:
@@ -160,6 +165,7 @@ class MediaStreamer:
                         out_audio_stream=out_audio_stream,
                         input_container=input_container,
                         duration=duration / av.time_base,
+                        decoded_audio_time=0,
                         jump_in_progress=None,
                         next_video_timestamp=0,
                         next_audio_timestamp=0,
@@ -174,6 +180,11 @@ class MediaStreamer:
                         if packet.stream.type == "video":
                             self._handle_video_packet(packet, output_video_container)
                         elif packet.stream.type == "audio":
+                            if packet.pts is not None:
+                                assert packet.time_base is not None
+                                self.playing_state.decoded_audio_time = float(
+                                    packet.pts * packet.time_base
+                                )
                             self._handle_audio_packet(packet, output_audio_container)
                             if packet.time_base is not None:
                                 # Let's use the audio stream timestamps to see how far we've encoded
@@ -305,6 +316,7 @@ class MediaStreamer:
                     out_packet.dts = out_packet.pts
                     self.playing_state.next_audio_timestamp += out_packet.duration
                 output_container.mux(out_packet)
+            self._broadcast_change()  # For updated position
         elif self.looping and not packet_fully_before_timestamp(
             packet, self.looping.loop_end
         ):
