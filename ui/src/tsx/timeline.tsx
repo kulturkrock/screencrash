@@ -347,12 +347,19 @@ class Timeline extends React.PureComponent<IProps, IState> {
 }
 
 function getActionText(action: IAction): string {
+  let desc;
   if (action.desc != null) {
     return action.desc;
   } else if (action.params && action.params.entityId) {
-    return `${action.target}:${action.cmd} ${action.params.entityId}`;
+    desc = `${action.target}:${action.cmd} ${action.params.entityId}`;
   } else {
-    return `${action.target}:${action.cmd}`;
+    desc = `${action.target}:${action.cmd}`;
+  }
+
+  if (action.delay !== 0) {
+    return `${desc} in ${action.delay}s`;
+  } else {
+    return desc;
   }
 }
 

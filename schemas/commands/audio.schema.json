@@ -43,6 +43,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "create" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -143,6 +144,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "play" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -170,6 +172,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "pause" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -197,6 +200,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "destroy" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -224,6 +228,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "set_next_file" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -267,6 +272,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "toggle_mute" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -294,6 +300,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "set_volume" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -360,6 +367,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "seek" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -392,6 +400,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "set_loops" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -424,6 +433,7 @@
             "properties": {
                 "target": { "const": "audio" },
                 "cmd": { "const": "fade" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",

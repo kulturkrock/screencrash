@@ -43,6 +43,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "setup" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -85,6 +86,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "add" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -120,6 +122,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "remove" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -147,6 +150,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "buy" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -174,6 +178,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "sell" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -201,6 +206,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "change_money" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -228,6 +234,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "enable_achievement" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -255,6 +262,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "undo_achievement" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -282,6 +290,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "set_currency" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -309,6 +318,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "set_items_visibility" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -336,6 +346,7 @@
             "properties": {
                 "target": { "const": "inventory" },
                 "cmd": { "const": "clear_item_animations" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",

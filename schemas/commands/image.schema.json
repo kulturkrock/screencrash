@@ -43,6 +43,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "create" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -207,6 +208,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "destroy" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -234,6 +236,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "show" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -261,6 +264,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "hide" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -288,6 +292,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "opacity" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -322,6 +327,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "viewport" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -381,6 +387,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "layer" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
@@ -414,6 +421,7 @@
             "properties": {
                 "target": { "const": "image" },
                 "cmd": { "const": "fade" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",

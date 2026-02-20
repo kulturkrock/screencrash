@@ -11,6 +11,7 @@
             "properties": {
                 "target": { "const": "internal" },
                 "cmd": { "const": "print" },
+                "delay": { "type": "number", "default": 0 },
                 "desc": {
                     "title": "Description",
                     "description": "Description of what this action do",
