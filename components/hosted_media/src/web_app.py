@@ -7,6 +7,7 @@ import asyncio
 from typing import Any
 from media_streamer import MediaStreamer
 import aiofiles
+from datetime import datetime
 
 
 class RequestHandler:
@@ -60,8 +61,9 @@ class RequestHandler:
 
             async with aiofiles.open(streamer.get_output_file(stream_type), "rb") as f:
                 while True:
-                    chunk = await f.read(1000)
+                    chunk = await f.read(1_000_000)
                     if len(chunk) > 0:
+                        print(f"{datetime.now().isoformat()} Sending {len(chunk)}")
                         await response.write(chunk)
                     elif not streamer.is_done():
                         await asyncio.sleep(0.1)
