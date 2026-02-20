@@ -34,26 +34,26 @@ function setupVideo(wrapper, message) {
     <audio id = 'audio-${message.entityId}' class = 'audio-media'>
   `;
   wrapper.innerHTML = html;
-
+  const startTime = Date.parse(message.startTime);
   const videoElement = wrapper.getElementsByTagName("video")[0];
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+
+  setTimeout(() => {
+    videoElement.play();
+    audioElement.play();
+  }, startTime - Date.now());
+
   attachMediaSource(
     videoElement,
     'video/webm; codecs="vp9"',
     `/api/stream/${message.streamId}/video`,
   );
 
-  const audioElement = wrapper.getElementsByTagName("audio")[0];
   attachMediaSource(
     audioElement,
     'audio/webm; codecs="opus"',
     `/api/stream/${message.streamId}/audio`,
   );
-
-  const startTime = Date.parse(message.startTime);
-  setTimeout(() => {
-    videoElement.play();
-    audioElement.play();
-  }, startTime - Date.now());
 }
 
 export default { setupVideo };

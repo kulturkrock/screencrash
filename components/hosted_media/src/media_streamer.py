@@ -99,7 +99,12 @@ class MediaStreamer:
             # This may be called before we've managed to get the duration from the input file, so we
             # should return something. It will be 0 at the start anyway.
             return 0
-        return self.playing_state.decoded_audio_time - STREAM_DELAY
+        # This will generally be a bit ahead of the actually played position in the client,
+        # but is more meaningful in other ways:
+        # - It matches the position you seek to from the UI
+        # - It tells you whether you can break out of a vamp loop
+        # - It doesn't tell you a position before the loop when you've just jumped
+        return self.playing_state.decoded_audio_time
 
     def stop(self) -> None:
         if self.stream_task is None:
@@ -194,13 +199,7 @@ class MediaStreamer:
                                 )
                                 # We're trusting that the clients really did start playing at the time they were told
                                 played_time = time.time() - self.start_time
-                                size_kb = (
-                                    self.playing_state.output_video_file_path.stat().st_size
-                                    / 1000
-                                )
-                                print(
-                                    f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
-                                )
+
                                 if encoded_time - played_time > STREAM_DELAY:
                                     await asyncio.sleep(
                                         encoded_time - played_time - STREAM_DELAY
