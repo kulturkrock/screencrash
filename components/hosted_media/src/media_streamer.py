@@ -35,7 +35,7 @@ from util import assert_and_get_one
 # ffmpeg -i tmp_nokeyframes.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212720,00:00:27.054200 output.mp4
 # (Replace the timestamps of -force_key_frames with your loop start times)
 
-STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "1"))
+STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"))
 
 
 @dataclass
@@ -71,9 +71,11 @@ class MediaStreamer:
         self,
         asset: Path,
         asset_dir: Path,
+        clients_start_time: datetime,
         effect_changed_callback: Callable[[], None],
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.start_time = clients_start_time.timestamp()
         self.effect_changed_callback = effect_changed_callback
         self.looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)  # tmp
         self.playing_state: _PlayingState | None = None
@@ -165,8 +167,6 @@ class MediaStreamer:
                     )
                     self._broadcast_change()  # For the updated duration
 
-                    started_playing = time.time()
-
                     # The loop will go on until we reach the end of the file.
                     # Jumping back using input_container.seek() is safe during the loop.
                     for packet in input_container.demux():
@@ -181,7 +181,8 @@ class MediaStreamer:
                                     self.playing_state.next_audio_timestamp
                                     * packet.time_base
                                 )
-                                played_time = time.time() - started_playing
+                                # We're trusting that the clients really did start playing at the time they were told
+                                played_time = time.time() - self.start_time
                                 size_kb = (
                                     self.playing_state.output_video_file_path.stat().st_size
                                     / 1000

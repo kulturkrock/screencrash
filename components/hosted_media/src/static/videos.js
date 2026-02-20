@@ -49,10 +49,11 @@ function setupVideo(wrapper, message) {
     `/api/stream/${message.streamId}/audio`,
   );
 
+  const startTime = Date.parse(message.startTime);
   setTimeout(() => {
     videoElement.play();
     audioElement.play();
-  }, 1000);
+  }, startTime - Date.now());
 }
 
 export default { setupVideo };

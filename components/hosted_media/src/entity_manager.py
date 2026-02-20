@@ -7,6 +7,12 @@ from media_streamer import MediaStreamer
 import asyncio
 import random
 import string
+from datetime import datetime, timedelta
+import os
+
+CLIENT_START_TIME_DELAY = float(
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_CLIENT_START_TIME_DELAY", "1")
+)
 
 
 @dataclass
@@ -92,6 +98,7 @@ class Video:
     playing: bool
     position: float  # How can this be synced with webpage? Get dynamically somehow?
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
+    clients_start_time: datetime
     media_streamer: MediaStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
@@ -109,6 +116,7 @@ class Video:
             "opacity": self.opacity,
             "layer": self.layer,
             "visible": self.visible,
+            "startTime": self.clients_start_time.isoformat(),
         }
         if fade is not None:
             message["fadeIn"] = {
@@ -214,9 +222,13 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
+            clients_start_time = datetime.now() + timedelta(
+                seconds=CLIENT_START_TIME_DELAY
+            )
             streamer = MediaStreamer(
                 message["asset"],
                 self.asset_dir,
+                clients_start_time,
                 lambda: self.broadcast_change_message(self.entities[entity_id]),
             )
             stream_id = (
@@ -245,6 +257,7 @@ class EntityManager:
                 playing=message.get("autostart", True),
                 position=message.get("start_at", 0),
                 stream_id=stream_id,
+                clients_start_time=clients_start_time,
                 media_streamer=streamer,
             )
         else:
