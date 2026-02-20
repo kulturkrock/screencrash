@@ -6,6 +6,7 @@ from datetime import datetime
 import typing
 import asyncio
 import time
+import os
 
 import av
 import av.container
@@ -33,6 +34,8 @@ from util import assert_and_get_one
 # Open tmp_nokeyframes.mp4 in audacity, find very exact timestamps to loop
 # ffmpeg -i tmp_nokeyframes.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212720,00:00:27.054200 output.mp4
 # (Replace the timestamps of -force_key_frames with your loop start times)
+
+STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "1"))
 
 
 @dataclass
@@ -186,8 +189,10 @@ class MediaStreamer:
                                 print(
                                     f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
                                 )
-                                if encoded_time - played_time > 1:
-                                    await asyncio.sleep(encoded_time - played_time - 1)
+                                if encoded_time - played_time > STREAM_DELAY:
+                                    await asyncio.sleep(
+                                        encoded_time - played_time - STREAM_DELAY
+                                    )
 
                     # Reached the end of the file
                     self.done = True
