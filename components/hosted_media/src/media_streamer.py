@@ -72,7 +72,7 @@ class MediaStreamer:
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
-        self.looping: _Looping | None = None  # _Looping(1_212_720, 3_612_920, 5)  # tmp
+        self.looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)  # tmp
         self.playing_state: _PlayingState | None = None
         self.stream_task: asyncio.Task | None = None
         self.done = False
@@ -101,7 +101,7 @@ class MediaStreamer:
         if stream_type == "video":
             return "video/webm"
         else:
-            return "audio/ogg"
+            return "audio/webm"
 
     def is_done(self) -> bool:
         return self.done
@@ -142,7 +142,7 @@ class MediaStreamer:
                     av.open(
                         output_audio_file,
                         "w",
-                        format="ogg",
+                        format="webm",
                         options={"live": "1"},
                     ) as output_audio_container,
                 ):
@@ -186,8 +186,8 @@ class MediaStreamer:
                                 print(
                                     f"Enc: {encoded_time} Pla: {played_time:.2f} Siz: {size_kb:.2f}"
                                 )
-                                if encoded_time - played_time > 5:
-                                    await asyncio.sleep(encoded_time - played_time - 5)
+                                if encoded_time - played_time > 1:
+                                    await asyncio.sleep(encoded_time - played_time - 1)
 
                     # Reached the end of the file
                     self.done = True
