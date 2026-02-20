@@ -199,6 +199,12 @@ class EntityManager:
             result = self.fade(
                 entity_id, message["target"], message["time"], message["stopOnDone"]
             )
+        elif cmd == "set_loops":
+            result = self.set_loops(entity_id, message["looping"])
+        elif cmd == "set_loop_times":
+            result = self.set_loop_times(
+                entity_id, message["loop_start"], message["loop_end"]
+            )
         else:
             raise RuntimeError(f"Unsupported command: {cmd}")
         return result
@@ -229,6 +235,9 @@ class EntityManager:
                 message["asset"],
                 self.asset_dir,
                 clients_start_time,
+                message.get("loop_start", "00:00:00.000000"),
+                message.get("loop_end", "end"),
+                message.get("looping", 1),
                 lambda: self.broadcast_change_message(self.entities[entity_id]),
             )
             stream_id = (
@@ -354,6 +363,22 @@ class EntityManager:
         else:
             self.entities[entity_id].opacity = fade_to
             self.broadcast_change_message(self.entities[entity_id])
+
+    def set_loops(self, entity_id: str, loops: int) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to set loops on {entity_id}, which does not support it"
+            )
+        entity.media_streamer.set_loop_count(loops)
+
+    def set_loop_times(self, entity_id: str, loop_start: str, loop_end: str) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to set loop times on {entity_id}, which does not support it"
+            )
+        entity.media_streamer.set_loop_times(loop_start, loop_end)
 
     def get_component_id(self) -> str:
         return self.component_id

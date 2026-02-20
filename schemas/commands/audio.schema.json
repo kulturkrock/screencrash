@@ -79,6 +79,18 @@
                             "type": "number",
                             "default": 1
                         },
+                        "loop_start": {
+                            "title": "Start time",
+                            "description": "Loop start timestamp on the form HH:mm:ss.xxxxxx",
+                            "type": "string",
+                            "default": "00:00:00.000000"
+                        },
+                        "loop_end": {
+                            "title": "End time",
+                            "description": "Loop end timestamp on the form HH:mm:ss.xxxxxx, or 'end' for clip end.",
+                            "type": "string",
+                            "default": "end"
+                        },
                         "autostart": {
                             "title": "Autostart",
                             "description": "True if clip should start immediately. Default true",
@@ -260,6 +272,44 @@
                         }
                     },
                     "required": ["entityId"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["target", "cmd", "params"],
+            "additionalProperties": false
+        },
+        {
+            "title": "Set loop start and end times",
+            "description": "Set loop start and end times. Should be very exact.",
+            "properties": {
+                "target": { "const": "audio" },
+                "cmd": { "const": "set_loop_times" },
+                "delay": { "type": "number", "default": 0 },
+                "desc": {
+                    "title": "Description",
+                    "description": "Description of what this action do",
+                    "type": "string"
+                },
+                "params": {
+                    "type": "object",
+                    "properties": {
+                        "entityId": {
+                            "title": "Entity ID",
+                            "description": "Entity ID of the clip",
+                            "type": "string"
+                        },
+                        "loop_start": {
+                            "title": "Start time",
+                            "description": "Loop start timestamp on the form HH:mm:ss.xxxxxx",
+                            "type": "string"
+                        },
+                        "loop_end": {
+                            "title": "End time",
+                            "description": "Loop end timestamp on the form HH:mm:ss.xxxxxx",
+                            "type": "string"
+                        }
+                    },
+                    "required": ["entityId", "looping"],
                     "additionalProperties": false
                 }
             },

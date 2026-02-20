@@ -38,11 +38,20 @@ from util import assert_and_get_one
 STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"))
 
 
-@dataclass
-class _Looping:
-    loop_start: int  # in av.time_base
-    loop_end: int  # in av.time_base
-    loops_left: int | None
+def _parse_timestamp(timestamp: str) -> int:  # In av.time_base
+    parsed_time = datetime.strptime(timestamp, "%H:%M:%S.%f")
+    hours = parsed_time.hour
+    minutes = parsed_time.minute
+    seconds = parsed_time.second
+    microseconds = parsed_time.microsecond
+    total_microseconds = (
+        hours * 3600 * 1_000_000
+        + minutes * 60 * 1_000_000
+        + seconds * 1_000_000
+        + microseconds
+    )
+    assert av.time_base == 1_000_000  # Just in case it changes in an update somehow
+    return total_microseconds
 
 
 @dataclass
@@ -62,7 +71,8 @@ class _PlayingState:
     decoded_audio_time: float
     jump_in_progress: _JumpInProgress | None
     next_video_timestamp: int  # In the time_base of the video stream
-    next_audio_timestamp: int  # In the time_base of the audio stream
+    next_audio_timestamp: int  # In the time_base of the output audio stream
+    last_audio_out_packet: av.Packet | None
     waiting_for_video_keyframe: bool
 
 
@@ -73,15 +83,29 @@ class MediaStreamer:
         asset: Path,
         asset_dir: Path,
         clients_start_time: datetime,
+        loop_start: str,
+        loop_end: str,
+        loops: int,
         effect_changed_callback: Callable[[], None],
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.start_time = clients_start_time.timestamp()
         self.effect_changed_callback = effect_changed_callback
-        self.looping: _Looping | None = _Looping(1_212_720, 3_612_920, 5)  # tmp
+        self.loop_start = _parse_timestamp(loop_start)
+        self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
+        # loops=0 means "forever" in the opus, but we use None for that here
+        self.loops_left = None if loops == 0 else loops - 1
+
         self.playing_state: _PlayingState | None = None
         self.stream_task: asyncio.Task | None = None
         self.done = False
+
+    def set_loop_count(self, loops: int) -> None:
+        self.loops_left = None if loops == 0 else loops - 1
+
+    def set_loop_times(self, loop_start: str, loop_end: str) -> None:
+        self.loop_start = _parse_timestamp(loop_start)
+        self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
 
     def start(self) -> None:
         self.stream_task = asyncio.create_task(self._stream())
@@ -174,38 +198,27 @@ class MediaStreamer:
                         jump_in_progress=None,
                         next_video_timestamp=0,
                         next_audio_timestamp=0,
+                        last_audio_out_packet=None,
                         waiting_for_video_keyframe=False,
                     )
-                    self._broadcast_change()  # For the updated duration
 
-                    # The loop will go on until we reach the end of the file.
-                    # Jumping back using input_container.seek() is safe during the loop.
-                    for packet in input_container.demux():
+                    while True:
+                        input_container.seek(0)
+                        self.playing_state.decoded_audio_time = 0  # If we just looped
+                        self._broadcast_change()
+                        # The for-loop will go on until we reach the end of the file.
+                        # Jumping back using input_container.seek() is safe during the for-loop.
+                        for packet in input_container.demux():
+                            await self._handle_packet(
+                                packet, output_video_container, output_audio_container
+                            )
+                        if self.loop_end is not None or self.loops_left == 0:
+                            break
+                        else:
+                            self._handle_completed_loop()
 
-                        if packet.stream.type == "video":
-                            self._handle_video_packet(packet, output_video_container)
-                        elif packet.stream.type == "audio":
-                            if packet.pts is not None:
-                                assert packet.time_base is not None
-                                self.playing_state.decoded_audio_time = float(
-                                    packet.pts * packet.time_base
-                                )
-                            self._handle_audio_packet(packet, output_audio_container)
-                            if packet.time_base is not None:
-                                # Let's use the audio stream timestamps to see how far we've encoded
-                                encoded_time = float(
-                                    self.playing_state.next_audio_timestamp
-                                    * packet.time_base
-                                )
-                                # We're trusting that the clients really did start playing at the time they were told
-                                played_time = time.time() - self.start_time
-
-                                if encoded_time - played_time > STREAM_DELAY:
-                                    await asyncio.sleep(
-                                        encoded_time - played_time - STREAM_DELAY
-                                    )
-
-                    # Reached the end of the file
+                    # Reached the end of the file and no loops left
+                    print(f"Finished playing {self.input_video_file_path.name}")
                     self.done = True
         finally:
             await asyncio.sleep(
@@ -235,6 +248,41 @@ class MediaStreamer:
 
         assert isinstance(out_audio_stream, av.AudioStream)
         return out_audio_stream, duration
+
+    def _handle_completed_loop(self):
+        if self.loops_left is not None:
+            self.loops_left -= 1
+
+    async def _handle_packet(
+        self,
+        packet: av.Packet,
+        output_video_container: av.container.OutputContainer,
+        output_audio_container: av.container.OutputContainer,
+    ):
+        assert self.playing_state
+        if packet.stream.type == "video":
+            self._handle_video_packet(packet, output_video_container)
+        elif packet.stream.type == "audio":
+            if packet.pts is not None:
+                assert packet.time_base is not None
+                self.playing_state.decoded_audio_time = float(
+                    packet.pts * packet.time_base
+                )
+            self._handle_audio_packet(packet, output_audio_container)
+            if (
+                self.playing_state.last_audio_out_packet
+                and self.playing_state.last_audio_out_packet.time_base is not None
+                and self.playing_state.last_audio_out_packet.pts is not None
+            ):
+                # Let's use the audio stream timestamps to see how far we've encoded
+                encoded_time = float(
+                    self.playing_state.last_audio_out_packet.pts
+                    * self.playing_state.last_audio_out_packet.time_base
+                )
+                # We're trusting that the clients really did start playing at the time they were told
+                played_time = time.time() - self.start_time
+                if encoded_time - played_time > STREAM_DELAY:
+                    await asyncio.sleep(encoded_time - played_time - STREAM_DELAY)
 
     def _handle_video_packet(
         self, packet: av.Packet, output_container: av.container.OutputContainer
@@ -316,16 +364,18 @@ class MediaStreamer:
                     self.playing_state.next_audio_timestamp += out_packet.duration
                 output_container.mux(out_packet)
             self._broadcast_change()  # For updated position
-        elif self.looping and not packet_fully_before_timestamp(
-            packet, self.looping.loop_end
+        elif (
+            self.loop_end is not None
+            and (self.loops_left is None or self.loops_left > 0)
+            and not packet_fully_before_timestamp(packet, self.loop_end)
         ):
             # Audio packet containing the end of the looping portion.
             # Store the current packet so we can stitch it together with the start of the loop,
             # then seek to the start of the loop.
             assert packet.duration is not None  # Not a dummy packet
             self.playing_state.jump_in_progress = _JumpInProgress(
-                jumping_from=self.looping.loop_end,
-                jumping_to=self.looping.loop_start,
+                jumping_from=self.loop_end,
+                jumping_to=self.loop_start,
                 partial_loop_end_packet=packet,
             )
             packet_duration = convert_to_av_time_base(packet.duration, packet.time_base)
@@ -336,15 +386,7 @@ class MediaStreamer:
 
             self.playing_state.input_container.seek(seek_to, any_frame=True)
             self.playing_state.waiting_for_video_keyframe = True
-
-            # tmp maybe, not sure we need to be able to loop N times
-            if self.looping.loops_left is not None:
-                self.looping.loops_left -= 1
-                if self.looping.loops_left <= 0:
-                    self.looping = None
-                    # this one is definitely tmp
-                    if self.playing_state.jump_in_progress.jumping_to == 1_212_720:
-                        self.looping = _Looping(27_054_200, 32_793_060, 5)
+            self._handle_completed_loop()
         else:
             # A normal audio packet, just re-encode it
 
@@ -360,3 +402,4 @@ class MediaStreamer:
                     out_packet.dts = out_packet.pts
                     self.playing_state.next_audio_timestamp += out_packet.duration
                 output_container.mux(out_packet)
+                self.playing_state.last_audio_out_packet = out_packet
