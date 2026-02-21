@@ -89,7 +89,6 @@ class Video:
     layer: int
     visible: bool
     # fade_in only matters when creating
-    loops_left: int
     # autostart only matters when creating
     # seamless and mimeCodec are specific to other media component
     # start_at only matters when creating
@@ -140,7 +139,7 @@ class Video:
             "currentTime": self.media_streamer.get_position(),
             "lastSync": time.time() * 1000,
             "playing": self.media_streamer.is_playing(),
-            "looping": self.loops_left > 0,
+            "looping": self.media_streamer.is_looping(),
         }
 
 
@@ -266,7 +265,6 @@ class EntityManager:
                 opacity=message.get("opacity", 1),
                 layer=message.get("layer", 0),
                 visible=message.get("visible", False),
-                loops_left=message.get("looping", 1),
                 fade_out=message.get("fadeOut", 0),
                 destroy_on_end=message.get("destroyOnEnd", True),
                 stream_id=stream_id,

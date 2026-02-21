@@ -112,6 +112,7 @@ class MediaStreamer:
 
     def set_loop_count(self, loops: int) -> None:
         self.loops_left = None if loops == 0 else loops - 1
+        self._broadcast_change()
 
     def set_loop_times(self, loop_start: str, loop_end: str) -> None:
         self.loop_start = _parse_timestamp(loop_start)
@@ -144,6 +145,9 @@ class MediaStreamer:
         if self.playing_state is None:
             return False
         return isinstance(self.playing_state.play_pause_status, _Playing)
+
+    def is_looping(self) -> bool:
+        return self.loops_left is None or self.loops_left > 0
 
     def stop(self) -> None:
         if self.stream_task is None:
