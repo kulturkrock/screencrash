@@ -23,15 +23,19 @@ function subscribe() {
         message.y,
         message.width,
         message.height,
-        message.usePercentage
+        message.usePercentage,
       );
     } else if (message.command === "setLayer") {
       wrappers.setLayer(message.entityId, message.layer);
     } else if (message.command === "fade") {
       wrappers.fade(message.entityId, message.to, message.time);
+    } else if (message.command === "play") {
+      videos.play(message.entityId, Date.parse(message.time));
+    } else if (message.command === "pause") {
+      videos.pause(message.entityId, Date.parse(message.time));
     } else {
       console.error(
-        `Unknown command '${message.command}' on type '${message.type}'`
+        `Unknown command '${message.command}' on type '${message.type}'`,
       );
     }
   });

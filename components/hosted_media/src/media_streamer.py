@@ -55,6 +55,17 @@ def _parse_timestamp(timestamp: str) -> int:  # In av.time_base
 
 
 @dataclass
+class _Playing:
+    clients_start_time: float
+    start_time_in_stream: int  # In av.time_base
+
+
+@dataclass
+class _Paused:
+    pause_time_in_stream: int  # In av.time_base
+
+
+@dataclass
 class _JumpInProgress:
     jumping_to: int  # in av.time_base
     jumping_from: int  # in av.time_base
@@ -62,13 +73,14 @@ class _JumpInProgress:
 
 
 @dataclass
-class _PlayingState:
+class _EncodingState:
     output_video_file_path: Path
     output_audio_file_path: Path
     out_audio_stream: av.AudioStream
     input_container: av.container.InputContainer
     duration: float
     decoded_audio_time: float
+    play_pause_status: _Playing | _Paused
     jump_in_progress: _JumpInProgress | None
     next_video_timestamp: int  # In the time_base of the video stream
     next_audio_timestamp: int  # In the time_base of the output audio stream
@@ -82,21 +94,19 @@ class MediaStreamer:
         self,
         asset: Path,
         asset_dir: Path,
-        clients_start_time: datetime,
         loop_start: str,
         loop_end: str,
         loops: int,
         effect_changed_callback: Callable[[], None],
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
-        self.start_time = clients_start_time.timestamp()
         self.effect_changed_callback = effect_changed_callback
         self.loop_start = _parse_timestamp(loop_start)
         self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
         # loops=0 means "forever" in the opus, but we use None for that here
         self.loops_left = None if loops == 0 else loops - 1
 
-        self.playing_state: _PlayingState | None = None
+        self.playing_state: _EncodingState | None = None
         self.stream_task: asyncio.Task | None = None
         self.done = False
 
@@ -107,8 +117,8 @@ class MediaStreamer:
         self.loop_start = _parse_timestamp(loop_start)
         self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
 
-    def start(self) -> None:
-        self.stream_task = asyncio.create_task(self._stream())
+    def start(self, clients_start_time: datetime | None) -> None:
+        self.stream_task = asyncio.create_task(self._stream(clients_start_time))
 
     def get_duration(self) -> float:
         if self.playing_state is None:
@@ -130,11 +140,40 @@ class MediaStreamer:
         # - It doesn't tell you a position before the loop when you've just jumped
         return self.playing_state.decoded_audio_time
 
+    def is_playing(self) -> bool:
+        if self.playing_state is None:
+            return False
+        return isinstance(self.playing_state.play_pause_status, _Playing)
+
     def stop(self) -> None:
         if self.stream_task is None:
             raise RuntimeError("VideoStreamer never started")
         self.stream_task.cancel()
         self.done = True
+
+    def play(self, clients_play_time: datetime) -> None:
+        if self.playing_state is None:
+            raise RuntimeError("VideoStreamer never started")
+        if isinstance(self.playing_state.play_pause_status, _Playing):
+            return  # Already playing
+        self.playing_state.play_pause_status = _Playing(
+            clients_start_time=clients_play_time.timestamp(),
+            start_time_in_stream=self.playing_state.play_pause_status.pause_time_in_stream,
+        )
+
+    def pause(self) -> None:
+        if self.playing_state is None:
+            raise RuntimeError("VideoStreamer never started")
+        if isinstance(self.playing_state.play_pause_status, _Paused):
+            return  # Already paused
+        last_packet = self.playing_state.last_audio_out_packet
+        if last_packet is None:
+            last_time = 0
+        else:
+            assert last_packet.pts is not None
+            assert last_packet.time_base is not None
+            last_time = convert_to_av_time_base(last_packet.pts, last_packet.time_base)
+        self.playing_state.play_pause_status = _Paused(pause_time_in_stream=last_time)
 
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
         if stream_type == "video":
@@ -156,7 +195,7 @@ class MediaStreamer:
     def _broadcast_change(self) -> None:
         self.effect_changed_callback()
 
-    async def _stream(self) -> None:
+    async def _stream(self, clients_start_time: datetime | None) -> None:
         temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now().isoformat()}-"
         )
@@ -188,13 +227,21 @@ class MediaStreamer:
                     out_audio_stream, duration = self._init_containers_and_state(
                         input_container, output_video_container, output_audio_container
                     )
-                    self.playing_state = _PlayingState(
+                    self.playing_state = _EncodingState(
                         output_video_file_path=output_video_file_path,
                         output_audio_file_path=output_audio_file_path,
                         out_audio_stream=out_audio_stream,
                         input_container=input_container,
                         duration=duration / av.time_base,
                         decoded_audio_time=0,
+                        play_pause_status=(
+                            _Paused(pause_time_in_stream=0)
+                            if clients_start_time is None
+                            else _Playing(
+                                clients_start_time=clients_start_time.timestamp(),
+                                start_time_in_stream=0,
+                            )
+                        ),
                         jump_in_progress=None,
                         next_video_timestamp=0,
                         next_audio_timestamp=0,
@@ -274,15 +321,43 @@ class MediaStreamer:
                 and self.playing_state.last_audio_out_packet.time_base is not None
                 and self.playing_state.last_audio_out_packet.pts is not None
             ):
-                # Let's use the audio stream timestamps to see how far we've encoded
-                encoded_time = float(
-                    self.playing_state.last_audio_out_packet.pts
-                    * self.playing_state.last_audio_out_packet.time_base
-                )
-                # We're trusting that the clients really did start playing at the time they were told
-                played_time = time.time() - self.start_time
-                if encoded_time - played_time > STREAM_DELAY:
-                    await asyncio.sleep(encoded_time - played_time - STREAM_DELAY)
+                if isinstance(self.playing_state.play_pause_status, _Playing):
+                    # Let's use the audio stream timestamps to see how far we've encoded, and make sure
+                    # we don't get too far ahead. We're trusting that the clients really did start playing
+                    # at the time they were told.
+                    played_time_since_unpause = (
+                        time.time()
+                        - self.playing_state.play_pause_status.clients_start_time
+                    )
+
+                    encoded_time_since_unpause = (
+                        convert_to_av_time_base(
+                            self.playing_state.last_audio_out_packet.pts,
+                            self.playing_state.last_audio_out_packet.time_base,
+                        )
+                        - self.playing_state.play_pause_status.start_time_in_stream
+                    ) / av.time_base
+                    if (
+                        encoded_time_since_unpause - played_time_since_unpause
+                        > STREAM_DELAY
+                    ):
+                        await asyncio.sleep(
+                            encoded_time_since_unpause
+                            - played_time_since_unpause
+                            - STREAM_DELAY
+                        )
+                else:
+                    encoded_after_pause = (
+                        convert_to_av_time_base(
+                            self.playing_state.last_audio_out_packet.pts,
+                            self.playing_state.last_audio_out_packet.time_base,
+                        )
+                        - self.playing_state.play_pause_status.pause_time_in_stream
+                    ) / av.time_base
+                    if encoded_after_pause > STREAM_DELAY:
+                        # Wait for unpausing before doing anything else
+                        while isinstance(self.playing_state.play_pause_status, _Paused):
+                            await asyncio.sleep(0.1)
 
     def _handle_video_packet(
         self, packet: av.Packet, output_container: av.container.OutputContainer
@@ -401,5 +476,7 @@ class MediaStreamer:
                     out_packet.pts = self.playing_state.next_audio_timestamp
                     out_packet.dts = out_packet.pts
                     self.playing_state.next_audio_timestamp += out_packet.duration
+                    self.playing_state.last_audio_out_packet = (
+                        out_packet  # Only save real packets here
+                    )
                 output_container.mux(out_packet)
-                self.playing_state.last_audio_out_packet = out_packet

@@ -34,24 +34,12 @@ function setupVideo(wrapper, message) {
     <audio id = 'audio-${message.entityId}' class = 'audio-media'>
   `;
   wrapper.innerHTML = html;
-  const startTime = Date.parse(message.startTime);
   const videoElement = wrapper.getElementsByTagName("video")[0];
   const audioElement = wrapper.getElementsByTagName("audio")[0];
-
-  setTimeout(() => {
-    console.log(`Started: ${Date.now()}`);
-    videoElement.play();
-    audioElement.play();
-    setInterval(() => {
-      console.log(
-        `Current time: ${Date.now()}, audio: ${audioElement.currentTime}`,
-      );
-    }, 1000);
-  }, startTime - Date.now());
-
-  audioElement.addEventListener("ended", () =>
-    console.log(`Ended ${Date.now()}`),
-  );
+  if (message.startTime !== undefined) {
+    const startTime = Date.parse(message.startTime);
+    play(wrapper, startTime);
+  }
 
   attachMediaSource(
     videoElement,
@@ -64,6 +52,48 @@ function setupVideo(wrapper, message) {
     'audio/webm; codecs="opus"',
     `/api/stream/${message.streamId}/audio`,
   );
+
+  audioElement.addEventListener("ended", () =>
+    console.log(`Ended ${Date.now()}`),
+  );
 }
 
-export default { setupVideo };
+// Temporary, will not work if there are multiple videos at the same time
+let tempIntervalId;
+
+function play(entityIdOrWrapper, time) {
+  let wrapper;
+  if (typeof entityIdOrWrapper === "string") {
+    wrapper = document.getElementById(entityIdOrWrapper);
+  } else {
+    wrapper = entityIdOrWrapper;
+  }
+  const videoElement = wrapper.getElementsByTagName("video")[0];
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+
+  setTimeout(() => {
+    console.log(`Started: ${Date.now()}`);
+    videoElement.play();
+    audioElement.play();
+    tempIntervalId = setInterval(() => {
+      console.log(
+        `Current time: ${Date.now()}, audio: ${audioElement.currentTime}`,
+      );
+    }, 1000);
+  }, time - Date.now());
+}
+
+function pause(entityId, time) {
+  const wrapper = document.getElementById(entityId);
+  const videoElement = wrapper.getElementsByTagName("video")[0];
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+
+  setTimeout(() => {
+    console.log(`Paused: ${Date.now()}`);
+    videoElement.pause();
+    audioElement.pause();
+    clearInterval(tempIntervalId);
+  }, time - Date.now());
+}
+
+export default { setupVideo, play, pause };

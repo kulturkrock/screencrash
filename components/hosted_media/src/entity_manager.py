@@ -10,8 +10,8 @@ import string
 from datetime import datetime, timedelta
 import os
 
-CLIENT_START_TIME_DELAY = float(
-    os.environ.get("SCREENCRASH_HOSTED_MEDIA_CLIENT_START_TIME_DELAY", "1")
+CLIENT_PRECISE_ACTION_DELAY = float(
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_CLIENT_PRECISE_ACTION_DELAY", "1")
 )
 
 
@@ -95,10 +95,8 @@ class Video:
     # start_at only matters when creating
     fade_out: int
     destroy_on_end: bool
-    playing: bool
-    position: float  # How can this be synced with webpage? Get dynamically somehow?
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
-    clients_start_time: datetime
+    clients_start_time: datetime | None
     media_streamer: MediaStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
@@ -116,8 +114,9 @@ class Video:
             "opacity": self.opacity,
             "layer": self.layer,
             "visible": self.visible,
-            "startTime": self.clients_start_time.isoformat(),
         }
+        if self.clients_start_time is not None:
+            message["startTime"] = self.clients_start_time.isoformat()
         if fade is not None:
             message["fadeIn"] = {
                 "from": fade.fade_from,
@@ -140,7 +139,7 @@ class Video:
             "duration": self.media_streamer.get_duration(),
             "currentTime": self.media_streamer.get_position(),
             "lastSync": time.time() * 1000,
-            "playing": self.playing,
+            "playing": self.media_streamer.is_playing(),
             "looping": self.loops_left > 0,
         }
 
@@ -199,6 +198,10 @@ class EntityManager:
             result = self.fade(
                 entity_id, message["target"], message["time"], message["stopOnDone"]
             )
+        elif cmd == "play":
+            result = self.play(entity_id)
+        elif cmd == "pause":
+            result = self.pause(entity_id)
         elif cmd == "set_loops":
             result = self.set_loops(entity_id, message["looping"])
         elif cmd == "set_loop_times":
@@ -228,13 +231,16 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
-            clients_start_time = datetime.now() + timedelta(
-                seconds=CLIENT_START_TIME_DELAY
-            )
+            autostart = message.get("autostart", True)
+            if autostart:
+                clients_start_time = datetime.now() + timedelta(
+                    seconds=CLIENT_PRECISE_ACTION_DELAY
+                )
+            else:
+                clients_start_time = None
             streamer = MediaStreamer(
                 message["asset"],
                 self.asset_dir,
-                clients_start_time,
                 message.get("loop_start", "00:00:00.000000"),
                 message.get("loop_end", "end"),
                 message.get("looping", 1),
@@ -247,7 +253,7 @@ class EntityManager:
             )
             for listener in self.create_media_streamer_listeners:
                 listener(stream_id, streamer)
-            streamer.start()
+            streamer.start(clients_start_time)
             new_entity = Video(
                 entity_id=entity_id,
                 asset=message["asset"],
@@ -263,8 +269,6 @@ class EntityManager:
                 loops_left=message.get("looping", 1),
                 fade_out=message.get("fadeOut", 0),
                 destroy_on_end=message.get("destroyOnEnd", True),
-                playing=message.get("autostart", True),
-                position=message.get("start_at", 0),
                 stream_id=stream_id,
                 clients_start_time=clients_start_time,
                 media_streamer=streamer,
@@ -363,6 +367,42 @@ class EntityManager:
         else:
             self.entities[entity_id].opacity = fade_to
             self.broadcast_change_message(self.entities[entity_id])
+
+    def play(self, entity_id: str) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to play/resume {entity_id}, which does not support it"
+            )
+        clients_play_time = datetime.now() + timedelta(
+            seconds=CLIENT_PRECISE_ACTION_DELAY
+        )
+        self.broadcast_webpage_message(
+            {
+                "command": "play",
+                "entityId": entity_id,
+                "time": clients_play_time.isoformat(),
+            }
+        )
+        entity.media_streamer.play(clients_play_time)
+        self.broadcast_change_message(entity)
+
+    def pause(self, entity_id: str) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(f"Tried to pause {entity_id}, which does not support it")
+        clients_pause_time = datetime.now() + timedelta(
+            seconds=CLIENT_PRECISE_ACTION_DELAY
+        )
+        self.broadcast_webpage_message(
+            {
+                "command": "pause",
+                "entityId": entity_id,
+                "time": clients_pause_time.isoformat(),
+            }
+        )
+        entity.media_streamer.pause()
+        self.broadcast_change_message(entity)
 
     def set_loops(self, entity_id: str, loops: int) -> None:
         entity = self.entities[entity_id]
