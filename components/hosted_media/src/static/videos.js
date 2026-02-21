@@ -39,9 +39,19 @@ function setupVideo(wrapper, message) {
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
   setTimeout(() => {
+    console.log(`Started: ${Date.now()}`);
     videoElement.play();
     audioElement.play();
+    setInterval(() => {
+      console.log(
+        `Current time: ${Date.now()}, audio: ${audioElement.currentTime}`,
+      );
+    }, 1000);
   }, startTime - Date.now());
+
+  audioElement.addEventListener("ended", () =>
+    console.log(`Ended ${Date.now()}`),
+  );
 
   attachMediaSource(
     videoElement,
