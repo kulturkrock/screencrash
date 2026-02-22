@@ -118,8 +118,10 @@ class MediaStreamer:
         self.loop_start = _parse_timestamp(loop_start)
         self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
 
-    def start(self, clients_start_time: datetime | None) -> None:
-        self.stream_task = asyncio.create_task(self._stream(clients_start_time))
+    def start(self, clients_start_time: datetime | None, start_at: float) -> None:
+        self.stream_task = asyncio.create_task(
+            self._stream(clients_start_time, start_at)
+        )
 
     def get_duration(self) -> float:
         if self.playing_state is None:
@@ -199,7 +201,9 @@ class MediaStreamer:
     def _broadcast_change(self) -> None:
         self.effect_changed_callback()
 
-    async def _stream(self, clients_start_time: datetime | None) -> None:
+    async def _stream(
+        self, clients_start_time: datetime | None, start_at: float
+    ) -> None:
         temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now().isoformat()}-"
         )
@@ -252,10 +256,14 @@ class MediaStreamer:
                         last_audio_out_packet=None,
                         waiting_for_video_keyframe=False,
                     )
-
+                    looped = False
                     while True:
-                        input_container.seek(0)
-                        self.playing_state.decoded_audio_time = 0  # If we just looped
+                        if not looped:
+                            input_container.seek(round(start_at * av.time_base))
+                            self.playing_state.decoded_audio_time = start_at
+                        else:
+                            input_container.seek(0)
+                            self.playing_state.decoded_audio_time = 0
                         self._broadcast_change()
                         # The for-loop will go on until we reach the end of the file.
                         # Jumping back using input_container.seek() is safe during the for-loop.

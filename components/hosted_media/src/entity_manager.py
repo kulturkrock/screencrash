@@ -261,7 +261,10 @@ class EntityManager:
             )
             for listener in self.create_media_streamer_listeners:
                 listener(stream_id, streamer)
-            streamer.start(clients_start_time)
+            streamer.start(
+                clients_start_time,
+                message.get("start_at", 0),
+            )
             new_entity = Video(
                 entity_id=entity_id,
                 asset=message["asset"],
