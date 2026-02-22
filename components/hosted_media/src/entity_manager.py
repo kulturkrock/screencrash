@@ -255,6 +255,7 @@ class EntityManager:
                 effect_changed_callback=lambda: self.broadcast_change_message(
                     self.entities[entity_id]
                 ),
+                will_end_advance_warning=CLIENT_PRECISE_ACTION_DELAY,
                 will_end_callback=(
                     lambda end_time: (
                         self._delete_at_time(

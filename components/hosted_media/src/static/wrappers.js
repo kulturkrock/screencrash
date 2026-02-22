@@ -28,10 +28,9 @@ function create(message, setupFunction) {
 function destroy(entityId, time) {
   const wrapper = document.getElementById(entityId);
   if (time !== null) {
-    setTimeout(
-      () => wrapper.parentNode.removeChild(wrapper),
-      time - Date.now(),
-    );
+    setTimeout(() => {
+      wrapper.parentNode.removeChild(wrapper);
+    }, time - Date.now());
   } else {
     wrapper.parentNode.removeChild(wrapper);
   }

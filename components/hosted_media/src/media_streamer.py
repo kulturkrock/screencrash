@@ -98,13 +98,16 @@ class MediaStreamer:
         loop_end: str,
         loops: int,
         effect_changed_callback: Callable[[], None],
+        will_end_advance_warning: float,
         will_end_callback: Callable[
             [datetime], None
         ],  # Function that takes the expected end of the clients' played streams
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
+        self.will_end_advance_warning = will_end_advance_warning
         self.will_end_callback = will_end_callback
+        self.sent_will_end_callback = False
         self.loop_start = _parse_timestamp(loop_start)
         self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
         # loops=0 means "forever" in the opus, but we use None for that here
@@ -281,18 +284,39 @@ class MediaStreamer:
                             await self._handle_packet(
                                 packet, output_video_container, output_audio_container
                             )
+                            if (
+                                self.encoding_state.duration
+                                - self.encoding_state.decoded_audio_time
+                                + STREAM_DELAY
+                                < self.will_end_advance_warning
+                                and not self.sent_will_end_callback
+                            ):
+                                will_end_at = datetime.now() + timedelta(
+                                    seconds=self.encoding_state.duration
+                                    - self.encoding_state.decoded_audio_time
+                                    + STREAM_DELAY
+                                )
+                                self.will_end_callback(will_end_at)
+                                self.sent_will_end_callback = True
                         if self.loop_end is not None or self.loops_left == 0:
                             break
                         else:
                             self._handle_completed_loop()
 
-                    # Reached the end of the file and no loops left
-                    print(f"Finished encoding from {self.input_video_file_path.name}")
-                    self.done = True
-
-                    self.will_end_callback(
-                        datetime.now() + timedelta(seconds=STREAM_DELAY)
+                # Reached the end of the file and no loops left
+                print(f"Finished encoding from {self.input_video_file_path.name}")
+                self.done = True
+                if not self.sent_will_end_callback:
+                    will_end_at = datetime.now() + timedelta(seconds=STREAM_DELAY)
+                    time_to_sleep = (
+                        will_end_at.timestamp()
+                        - self.will_end_advance_warning
+                        - time.time()
                     )
+                    await asyncio.sleep(max(time_to_sleep, 0))
+                    self.will_end_callback(will_end_at)
+                    self.sent_will_end_callback = True
+                    await asyncio.sleep(max(will_end_at.timestamp() - time.time(), 0))
         finally:
             await asyncio.sleep(
                 1
