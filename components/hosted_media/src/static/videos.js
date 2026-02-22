@@ -28,7 +28,6 @@ function attachMediaSource(element, codec, url) {
 }
 
 function setupVideo(wrapper, message) {
-  // TODO: Need to instruct users to allow autoplay. Can we check with javascript?
   const html = `
     <video id = 'video-${message.entityId}' class = 'video-media'>
     <audio id = 'audio-${message.entityId}' class = 'audio-media'>

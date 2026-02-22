@@ -8,6 +8,12 @@ body{
     visibility:hidden;
 }
 
+.autoplay-warning {
+    color: white;
+    font-size: 2em;
+    text-align: center;
+}
+
 div.media-wrapper{
     position:fixed;
     top:0px;

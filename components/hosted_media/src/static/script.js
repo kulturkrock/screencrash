@@ -1,6 +1,7 @@
 import images from "./images.js";
 import videos from "./videos.js";
 import wrappers from "./wrappers.js";
+import domUtils from "./domUtils.js";
 
 function subscribe() {
   const eventSource = new EventSource("../api/subscribe");
@@ -47,4 +48,18 @@ function subscribe() {
   });
 }
 
+async function playAudioKeepalive() {
+  const audioElement = document.getElementById("audio-keepalive");
+  try {
+    await audioElement.play();
+  } catch {
+    const textElement = document.createElement("div");
+    textElement.textContent =
+      "Autoplay är blockerat, ge den här sidan tillstånd att spela ljud i webbläsarens inställningar.";
+    domUtils.addClass(textElement, "autoplay-warning");
+    document.body.appendChild(textElement);
+  }
+}
+
+playAudioKeepalive();
 subscribe();
