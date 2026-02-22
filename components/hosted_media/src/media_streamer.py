@@ -181,6 +181,12 @@ class MediaStreamer:
             last_time = convert_to_av_time_base(last_packet.pts, last_packet.time_base)
         self.playing_state.play_pause_status = _Paused(pause_time_in_stream=last_time)
 
+    def seek(self, position: float) -> None:
+        if self.playing_state is None:
+            raise RuntimeError("VideoStreamer never started")
+        self.playing_state.input_container.seek(round(position * av.time_base))
+        self.playing_state.decoded_audio_time = position
+
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
         if stream_type == "video":
             return "video/webm"

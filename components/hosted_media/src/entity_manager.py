@@ -206,6 +206,8 @@ class EntityManager:
             result = self.play(entity_id)
         elif cmd == "pause":
             result = self.pause(entity_id)
+        elif cmd == "seek":
+            result = self.seek(entity_id, message["position"])
         elif cmd == "toggle_mute":
             result = self.toggle_mute(entity_id)
         elif cmd == "set_volume":
@@ -414,6 +416,15 @@ class EntityManager:
             }
         )
         entity.media_streamer.pause()
+        self.broadcast_change_message(entity)
+
+    def seek(self, entity_id: str, position: float) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to set position in {entity_id}, which does not support it"
+            )
+        entity.media_streamer.seek(position)
         self.broadcast_change_message(entity)
 
     def toggle_mute(self, entity_id: str) -> None:
