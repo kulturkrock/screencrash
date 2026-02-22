@@ -32,7 +32,12 @@ function subscribe() {
     } else if (message.command === "setLayer") {
       wrappers.setLayer(message.entityId, message.layer);
     } else if (message.command === "fade") {
-      wrappers.fade(message.entityId, message.to, message.time);
+      wrappers.fade(
+        message.entityId,
+        message.to,
+        message.time,
+        message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
+      );
     } else if (message.command === "play") {
       videos.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {

@@ -111,8 +111,18 @@ function setLayer(entityId, layer) {
   _setLayer(wrapper, layer);
 }
 
-function fade(entityId, fadeTo, time) {
+function fade(entityId, fadeTo, time, fadeStartTime) {
   const wrapper = document.getElementById(entityId);
+  if (fadeStartTime !== null) {
+    setTimeout(() => {
+      doFade(wrapper, fadeTo, time);
+    }, fadeStartTime - Date.now());
+  } else {
+    doFade(wrapper, fadeTo, time);
+  }
+}
+
+function doFade(wrapper, fadeTo, time) {
   wrapper.style.transition = `opacity ${time}s linear`;
   wrapper.style.opacity = fadeTo;
   // Clean up the transition so it doesn't affect future opacity changes

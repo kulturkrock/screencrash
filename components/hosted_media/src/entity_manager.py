@@ -90,11 +90,6 @@ class Video:
     visible: bool
     muted: bool
     volume: int
-    # fade_in only matters when creating
-    # autostart only matters when creating
-    # seamless and mimeCodec are specific to other media component
-    # start_at only matters when creating
-    fade_out: int
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
     clients_start_time: datetime | None
     media_streamer: MediaStreamer
@@ -246,6 +241,25 @@ class EntityManager:
                 )
             else:
                 clients_start_time = None
+            if "fadeOut" in message:
+                fade_out_time = message["fadeOut"]
+                will_end_advance_warning = fade_out_time + CLIENT_PRECISE_ACTION_DELAY
+                will_end_callback = lambda end_time: self._fade_at_time(
+                    entity_id=entity_id,
+                    fade_to=0,
+                    fade_start_time=end_time - timedelta(seconds=fade_out_time),
+                    fade_duration=fade_out_time,
+                    destroy_on_end=message.get("destroyOnEnd", True),
+                )
+            elif message.get("destroyOnEnd", True):
+                will_end_advance_warning = CLIENT_PRECISE_ACTION_DELAY
+                will_end_callback = lambda end_time: self._delete_at_time(
+                    entity_id,
+                    end_time + timedelta(seconds=0.1),  # Just a bit later, just in case
+                )
+            else:
+                will_end_advance_warning = CLIENT_PRECISE_ACTION_DELAY
+                will_end_callback = lambda end_time: None
             streamer = MediaStreamer(
                 asset=message["asset"],
                 asset_dir=self.asset_dir,
@@ -255,18 +269,8 @@ class EntityManager:
                 effect_changed_callback=lambda: self.broadcast_change_message(
                     self.entities[entity_id]
                 ),
-                will_end_advance_warning=CLIENT_PRECISE_ACTION_DELAY,
-                will_end_callback=(
-                    lambda end_time: (
-                        self._delete_at_time(
-                            entity_id,
-                            end_time
-                            + timedelta(seconds=0.1),  # Just a bit later, just in case
-                        )
-                        if message.get("destroyOnEnd", True)
-                        else None
-                    )
-                ),
+                will_end_advance_warning=will_end_advance_warning,
+                will_end_callback=will_end_callback,
             )
             stream_id = (
                 entity_id
@@ -293,7 +297,6 @@ class EntityManager:
                 visible=message.get("visible", False),
                 muted=False,
                 volume=100,
-                fade_out=message.get("fadeOut", 0),
                 stream_id=stream_id,
                 clients_start_time=clients_start_time,
                 media_streamer=streamer,
@@ -387,6 +390,48 @@ class EntityManager:
         await asyncio.sleep(delay)
         self._delete_entity(entity_id)
 
+    def _fade_at_time(
+        self,
+        entity_id: str,
+        fade_to: float,
+        fade_start_time: datetime,
+        fade_duration: float,
+        destroy_on_end: bool,
+    ) -> None:
+        asyncio.create_task(
+            self._async_fade_at_time(
+                entity_id, fade_to, fade_start_time, fade_duration, destroy_on_end
+            )
+        )
+
+    async def _async_fade_at_time(
+        self,
+        entity_id: str,
+        fade_to: float,
+        fade_start_time: datetime,
+        fade_duration: float,
+        destroy_on_end: bool,
+    ) -> None:
+        self.broadcast_webpage_message(
+            {
+                "command": "fade",
+                "entityId": entity_id,
+                "to": fade_to,
+                "time": fade_duration,
+                "fadeStartTime": fade_start_time.isoformat(),
+            }
+        )
+        delay = fade_start_time.timestamp() - time.time()
+        await asyncio.sleep(delay)
+        if destroy_on_end:
+            # We wait one second longer than the fade should take, just to be sure it's done
+            self._delete_at_time(
+                entity_id, datetime.now() + timedelta(seconds=fade_duration + 1)
+            )
+        else:
+            self.entities[entity_id].opacity = fade_to
+            self.broadcast_change_message(self.entities[entity_id])
+
     def fade(
         self,
         entity_id: str,
@@ -400,6 +445,7 @@ class EntityManager:
                 "entityId": entity_id,
                 "to": fade_to,
                 "time": time,
+                "fadeStartTime": None,
             }
         )
         if destroy_on_end:
