@@ -109,4 +109,33 @@ function setVolume(entityId, volume) {
   audioElement.volume = volume / 100;
 }
 
-export default { setupVideo, play, pause, setMuted, setVolume };
+function fadeAudio(entityId, toVolume, duration, fadeStartTime) {
+  const wrapper = document.getElementById(entityId);
+  if (fadeStartTime !== null) {
+    setTimeout(() => {
+      doFade(wrapper, toVolume, duration);
+    }, fadeStartTime - Date.now());
+  } else {
+    doFade(wrapper, toVolume, duration);
+  }
+}
+
+function doFade(wrapper, toVolume, duration) {
+  // Here toVolume is between 0 and 1, not 0 and 100
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+  const startingVolume = audioElement.volume;
+  const stepTime = 50;
+  const volumeStep =
+    (toVolume - startingVolume) / ((duration * 1000) / stepTime);
+  const intervalId = setInterval(() => {
+    const newVolume = audioElement.volume + volumeStep;
+    if (newVolume <= 0) {
+      audioElement.volume = 0;
+      clearInterval(intervalId);
+    } else {
+      audioElement.volume = newVolume;
+    }
+  }, stepTime);
+}
+
+export default { setupVideo, play, pause, setMuted, setVolume, fadeAudio };

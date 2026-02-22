@@ -412,6 +412,7 @@ class EntityManager:
         fade_duration: float,
         destroy_on_end: bool,
     ) -> None:
+        also_fade_audio = isinstance(self.entities[entity_id], Video)
         self.broadcast_webpage_message(
             {
                 "command": "fade",
@@ -419,6 +420,7 @@ class EntityManager:
                 "to": fade_to,
                 "time": fade_duration,
                 "fadeStartTime": fade_start_time.isoformat(),
+                "alsoFadeAudio": also_fade_audio,
             }
         )
         delay = fade_start_time.timestamp() - time.time()
@@ -439,6 +441,7 @@ class EntityManager:
         time: float,
         destroy_on_end: bool,
     ) -> None:
+        also_fade_audio = isinstance(self.entities[entity_id], Video)
         self.broadcast_webpage_message(
             {
                 "command": "fade",
@@ -446,6 +449,7 @@ class EntityManager:
                 "to": fade_to,
                 "time": time,
                 "fadeStartTime": None,
+                "alsoFadeAudio": also_fade_audio,
             }
         )
         if destroy_on_end:

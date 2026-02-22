@@ -38,6 +38,14 @@ function subscribe() {
         message.time,
         message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
       );
+      if (message.alsoFadeAudio) {
+        videos.fadeAudio(
+          message.entityId,
+          message.to,
+          message.time,
+          message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
+        );
+      }
     } else if (message.command === "play") {
       videos.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {
