@@ -95,7 +95,6 @@ class Video:
     # seamless and mimeCodec are specific to other media component
     # start_at only matters when creating
     fade_out: int
-    destroy_on_end: bool
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
     clients_start_time: datetime | None
     media_streamer: MediaStreamer
@@ -162,7 +161,6 @@ class EntityManager:
         self.entities: dict[str, Image | Video] = {}
 
     def _delete_entity(self, entity_id: str):
-        self.broadcast_webpage_message({"command": "destroy", "entityId": entity_id})
         self.broadcast_core_message(
             {"messageType": "effect-removed", "entityId": entity_id}
         )
@@ -249,12 +247,25 @@ class EntityManager:
             else:
                 clients_start_time = None
             streamer = MediaStreamer(
-                message["asset"],
-                self.asset_dir,
-                message.get("loop_start", "00:00:00.000000"),
-                message.get("loop_end", "end"),
-                message.get("looping", 1),
-                lambda: self.broadcast_change_message(self.entities[entity_id]),
+                asset=message["asset"],
+                asset_dir=self.asset_dir,
+                loop_start=message.get("loop_start", "00:00:00.000000"),
+                loop_end=message.get("loop_end", "end"),
+                loops=message.get("looping", 1),
+                effect_changed_callback=lambda: self.broadcast_change_message(
+                    self.entities[entity_id]
+                ),
+                will_end_callback=(
+                    lambda end_time: (
+                        self._delete_at_time(
+                            entity_id,
+                            end_time
+                            + timedelta(seconds=0.1),  # Just a bit later, just in case
+                        )
+                        if message.get("destroyOnEnd", True)
+                        else None
+                    )
+                ),
             )
             stream_id = (
                 entity_id
@@ -282,7 +293,6 @@ class EntityManager:
                 muted=False,
                 volume=100,
                 fade_out=message.get("fadeOut", 0),
-                destroy_on_end=message.get("destroyOnEnd", True),
                 stream_id=stream_id,
                 clients_start_time=clients_start_time,
                 media_streamer=streamer,
@@ -305,6 +315,9 @@ class EntityManager:
         )
 
     def destroy(self, entity_id: str) -> None:
+        self.broadcast_webpage_message(
+            {"command": "destroy", "entityId": entity_id, "time": None}
+        )
         self._delete_entity(entity_id)
 
     def set_visible(self, entity_id: str, visible: bool) -> None:
@@ -356,7 +369,20 @@ class EntityManager:
         self.entities[entity_id].layer = layer
         self.broadcast_change_message(self.entities[entity_id])
 
-    async def _delete_with_delay(self, entity_id: str, delay: float) -> None:
+    def _delete_at_time(self, entity_id: str, delete_time: datetime) -> None:
+        asyncio.create_task(self._async_delete_at_time(entity_id, delete_time))
+
+    async def _async_delete_at_time(
+        self, entity_id: str, delete_time: datetime
+    ) -> None:
+        self.broadcast_webpage_message(
+            {
+                "command": "destroy",
+                "entityId": entity_id,
+                "time": delete_time.isoformat(),
+            }
+        )
+        delay = delete_time.timestamp() - time.time()
         await asyncio.sleep(delay)
         self._delete_entity(entity_id)
 
@@ -377,7 +403,9 @@ class EntityManager:
         )
         if destroy_on_end:
             # We wait one second longer than the fade should take, just to be sure it's done
-            asyncio.create_task(self._delete_with_delay(entity_id, time + 1))
+            self._delete_at_time(
+                entity_id, datetime.now() + timedelta(seconds=time + 1)
+            )
         else:
             self.entities[entity_id].opacity = fade_to
             self.broadcast_change_message(self.entities[entity_id])

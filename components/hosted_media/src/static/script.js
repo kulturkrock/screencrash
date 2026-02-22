@@ -8,7 +8,10 @@ function subscribe() {
   eventSource.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     if (message.command === "destroy") {
-      wrappers.destroy(message.entityId);
+      wrappers.destroy(
+        message.entityId,
+        message.time ? Date.parse(message.time) : null,
+      );
     } else if (message.command === "create" && message.type === "image") {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {

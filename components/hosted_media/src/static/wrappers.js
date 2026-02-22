@@ -17,7 +17,7 @@ function create(message, setupFunction) {
     message.y,
     message.width,
     message.height,
-    message.usePercentage
+    message.usePercentage,
   );
   _setLayer(wrapper, message.layer);
   setupFunction(wrapper, message);
@@ -25,9 +25,16 @@ function create(message, setupFunction) {
   document.body.appendChild(wrapper);
 }
 
-function destroy(entityId) {
+function destroy(entityId, time) {
   const wrapper = document.getElementById(entityId);
-  wrapper.parentNode.removeChild(wrapper);
+  if (time !== null) {
+    setTimeout(
+      () => wrapper.parentNode.removeChild(wrapper),
+      time - Date.now(),
+    );
+  } else {
+    wrapper.parentNode.removeChild(wrapper);
+  }
 }
 
 function _setVisible(wrapper, visible) {

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 import typing
 import asyncio
 import time
@@ -98,9 +98,13 @@ class MediaStreamer:
         loop_end: str,
         loops: int,
         effect_changed_callback: Callable[[], None],
+        will_end_callback: Callable[
+            [datetime], None
+        ],  # Function that takes the expected end of the clients' played streams
     ):
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.effect_changed_callback = effect_changed_callback
+        self.will_end_callback = will_end_callback
         self.loop_start = _parse_timestamp(loop_start)
         self.loop_end = _parse_timestamp(loop_end) if loop_end != "end" else None
         # loops=0 means "forever" in the opus, but we use None for that here
@@ -283,8 +287,12 @@ class MediaStreamer:
                             self._handle_completed_loop()
 
                     # Reached the end of the file and no loops left
-                    print(f"Finished playing {self.input_video_file_path.name}")
+                    print(f"Finished encoding from {self.input_video_file_path.name}")
                     self.done = True
+
+                    self.will_end_callback(
+                        datetime.now() + timedelta(seconds=STREAM_DELAY)
+                    )
         finally:
             await asyncio.sleep(
                 1
