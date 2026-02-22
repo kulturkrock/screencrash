@@ -37,6 +37,8 @@ function subscribe() {
       videos.setMuted(message.entityId, true);
     } else if (message.command === "unmute") {
       videos.setMuted(message.entityId, false);
+    } else if (message.command === "setVolume") {
+      videos.setVolume(message.entityId, message.volume);
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`,

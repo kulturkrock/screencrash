@@ -89,6 +89,7 @@ class Video:
     layer: int
     visible: bool
     muted: bool
+    volume: int
     # fade_in only matters when creating
     # autostart only matters when creating
     # seamless and mimeCodec are specific to other media component
@@ -114,6 +115,8 @@ class Video:
             "opacity": self.opacity,
             "layer": self.layer,
             "visible": self.visible,
+            "muted": self.muted,
+            "volume": self.volume,
         }
         if self.clients_start_time is not None:
             message["startTime"] = self.clients_start_time.isoformat()
@@ -205,6 +208,8 @@ class EntityManager:
             result = self.pause(entity_id)
         elif cmd == "toggle_mute":
             result = self.toggle_mute(entity_id)
+        elif cmd == "set_volume":
+            result = self.set_volume(entity_id, message["volume"])
         elif cmd == "set_loops":
             result = self.set_loops(entity_id, message["looping"])
         elif cmd == "set_loop_times":
@@ -270,6 +275,7 @@ class EntityManager:
                 layer=message.get("layer", 0),
                 visible=message.get("visible", False),
                 muted=False,
+                volume=100,
                 fade_out=message.get("fadeOut", 0),
                 destroy_on_end=message.get("destroyOnEnd", True),
                 stream_id=stream_id,
@@ -421,6 +427,17 @@ class EntityManager:
             }
         )
         self.broadcast_change_message(entity)
+
+    def set_volume(self, entity_id: str, volume: int) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to set volume on {entity_id}, which does not support it"
+            )
+        entity.volume = volume
+        self.broadcast_webpage_message(
+            {"command": "setVolume", "entityId": entity_id, "volume": volume}
+        )
 
     def set_loops(self, entity_id: str, loops: int) -> None:
         entity = self.entities[entity_id]

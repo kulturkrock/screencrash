@@ -40,6 +40,8 @@ function setupVideo(wrapper, message) {
     const startTime = Date.parse(message.startTime);
     play(wrapper, startTime);
   }
+  audioElement.muted = message.muted;
+  audioElement.volume = message.volume / 100;
 
   attachMediaSource(
     videoElement,
@@ -102,4 +104,10 @@ function setMuted(entityId, muted) {
   audioElement.muted = muted;
 }
 
-export default { setupVideo, play, pause, setMuted };
+function setVolume(entityId, volume) {
+  const wrapper = document.getElementById(entityId);
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+  audioElement.volume = volume / 100;
+}
+
+export default { setupVideo, play, pause, setMuted, setVolume };

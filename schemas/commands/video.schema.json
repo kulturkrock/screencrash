@@ -641,7 +641,7 @@
                             "not": {
                                 "anyOf": [
                                     { "required": ["volume_left"] },
-                                    {"required": ["volume_right"] }
+                                    { "required": ["volume_right"] }
                                 ]
                             }
                         },
