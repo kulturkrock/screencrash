@@ -96,4 +96,10 @@ function pause(entityId, time) {
   }, time - Date.now());
 }
 
-export default { setupVideo, play, pause };
+function setMuted(entityId, muted) {
+  const wrapper = document.getElementById(entityId);
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+  audioElement.muted = muted;
+}
+
+export default { setupVideo, play, pause, setMuted };

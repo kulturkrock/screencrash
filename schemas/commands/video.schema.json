@@ -85,13 +85,13 @@
                             "default": 1
                         },
                         "loop_start": {
-                            "title": "Start time",
+                            "title": "Loop start time",
                             "description": "Loop start timestamp on the form HH:mm:ss.xxxxxx",
                             "type": "string",
                             "default": "00:00:00.000000"
                         },
                         "loop_end": {
-                            "title": "End time",
+                            "title": "Loop end time",
                             "description": "Loop end timestamp on the form HH:mm:ss.xxxxxx, or 'end' for clip end.",
                             "type": "string",
                             "default": "end"

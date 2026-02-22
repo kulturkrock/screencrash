@@ -88,6 +88,7 @@ class Video:
     opacity: float
     layer: int
     visible: bool
+    muted: bool
     # fade_in only matters when creating
     # autostart only matters when creating
     # seamless and mimeCodec are specific to other media component
@@ -135,6 +136,7 @@ class Video:
             "viewport_width": self.width,
             "viewport_height": self.height,
             "layer": self.layer,
+            "muted": self.muted,
             "duration": self.media_streamer.get_duration(),
             "currentTime": self.media_streamer.get_position(),
             "lastSync": time.time() * 1000,
@@ -201,6 +203,8 @@ class EntityManager:
             result = self.play(entity_id)
         elif cmd == "pause":
             result = self.pause(entity_id)
+        elif cmd == "toggle_mute":
+            result = self.toggle_mute(entity_id)
         elif cmd == "set_loops":
             result = self.set_loops(entity_id, message["looping"])
         elif cmd == "set_loop_times":
@@ -265,6 +269,7 @@ class EntityManager:
                 opacity=message.get("opacity", 1),
                 layer=message.get("layer", 0),
                 visible=message.get("visible", False),
+                muted=False,
                 fade_out=message.get("fadeOut", 0),
                 destroy_on_end=message.get("destroyOnEnd", True),
                 stream_id=stream_id,
@@ -400,6 +405,21 @@ class EntityManager:
             }
         )
         entity.media_streamer.pause()
+        self.broadcast_change_message(entity)
+
+    def toggle_mute(self, entity_id: str) -> None:
+        entity = self.entities[entity_id]
+        if not isinstance(entity, Video):
+            raise RuntimeError(
+                f"Tried to toggle mute on {entity_id}, which does not support it"
+            )
+        entity.muted = not entity.muted
+        self.broadcast_webpage_message(
+            {
+                "command": "mute" if entity.muted else "unmute",
+                "entityId": entity_id,
+            }
+        )
         self.broadcast_change_message(entity)
 
     def set_loops(self, entity_id: str, loops: int) -> None:

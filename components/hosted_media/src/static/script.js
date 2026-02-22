@@ -33,6 +33,10 @@ function subscribe() {
       videos.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {
       videos.pause(message.entityId, Date.parse(message.time));
+    } else if (message.command === "mute") {
+      videos.setMuted(message.entityId, true);
+    } else if (message.command === "unmute") {
+      videos.setMuted(message.entityId, false);
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`,
