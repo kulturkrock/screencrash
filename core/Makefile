@@ -1,6 +1,6 @@
 .PHONY: default init dev test
 
-default: init dev test
+default: dev
 
 init:
 	pdm install
