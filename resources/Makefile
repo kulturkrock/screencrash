@@ -5,7 +5,7 @@
 # Downloaded from Google drive:
 CSV = "Skärmkrock-manus - Manus.csv"
 # PDF script:
-SCRIPT = "Slay_20260206.pdf"
+SCRIPT = "Musikal-manus.pdf"
 
 # Unconverted media files (e.g., downloaded from Google drive)
 UNCONVERTED_MEDIA = "google-media"
