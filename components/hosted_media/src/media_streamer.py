@@ -131,8 +131,9 @@ class MediaStreamer:
             raise RuntimeError(
                 f"Expected 1 video stream, found {len(self.input_container.streams.video)}"
             )
-        in_video_stream = self.input_container.streams.video[0]
-        self.output_video_container.add_stream_from_template(in_video_stream)
+        self.output_video_container.add_stream_from_template(
+            self.input_container.streams.video[0]
+        )
         self.out_audio_stream = self.output_audio_container.add_stream("libopus")
 
         # Setup misc
@@ -151,7 +152,7 @@ class MediaStreamer:
         self.done = False
 
         # Start encoding
-        self.stream_task = asyncio.create_task(self.encode())
+        self.stream_task = asyncio.create_task(self._encode())
 
     def _cleanup(self) -> None:
         self.input_container.close()
@@ -165,7 +166,7 @@ class MediaStreamer:
     def _broadcast_change(self) -> None:
         self.effect_changed_callback()
 
-    async def encode(self) -> None:
+    async def _encode(self) -> None:
         try:
             looped = False
             while True:
