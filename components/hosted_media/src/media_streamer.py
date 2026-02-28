@@ -84,6 +84,7 @@ class MediaStreamer:
         loops: int,
         start_at: float,
         effect_changed_callback: Callable[[], None],
+        # How far in advance will_end_callback should fire. It may fire earlier, or slightly later
         will_end_advance_warning: float,
         will_end_callback: Callable[
             [datetime], None
@@ -179,55 +180,52 @@ class MediaStreamer:
         )
         # TODO: Can we do better?
 
-    async def _encode(self) -> None:
-        try:
-            looped = False
-            while True:
-                if not looped:
-                    pass
-                else:
-                    self._seek(0)
-                self._broadcast_change()
-                # The for-loop will go on until we reach the end of the file.
-                # Jumping back using input_container.seek() is safe during the for-loop.
-                for packet in self.input_container.demux():
-                    await self._handle_packet(
-                        packet, self.output_video_container, self.output_audio_container
-                    )
-                    if (
-                        (self.duration - self.latest_input_audio_timestamp)
-                        / av.time_base
-                        + STREAM_DELAY
-                        < self.will_end_advance_warning
-                        and not self.sent_will_end_callback
-                    ):
-                        will_end_at = datetime.now() + timedelta(
-                            seconds=(self.duration - self.latest_input_audio_timestamp)
-                            / av.time_base
-                            + STREAM_DELAY
-                        )
-                        self.will_end_callback(will_end_at)
-                        self.sent_will_end_callback = True
-                if self.loop_end is not None or self.loops_left == 0:
-                    break
-                else:
-                    self._handle_completed_loop()
-
-            # Reached the end of the file and no loops left
-            print(f"Finished encoding from {self.input_video_file_path.name}")
-            self.done = True
-            if not self.sent_will_end_callback:
-                will_end_at = datetime.now() + timedelta(seconds=STREAM_DELAY)
-                time_to_sleep = (
-                    will_end_at.timestamp()
-                    - self.will_end_advance_warning
-                    - time.time()
+    def _maybe_send_will_end_callback(self) -> None:
+        if self.sent_will_end_callback:
+            return
+        if not self.done:
+            if (
+                self.duration - self.latest_input_audio_timestamp
+            ) / av.time_base + STREAM_DELAY < self.will_end_advance_warning:
+                will_end_at = datetime.now() + timedelta(
+                    seconds=(self.duration - self.latest_input_audio_timestamp)
+                    / av.time_base
+                    + STREAM_DELAY
                 )
-                await asyncio.sleep(max(time_to_sleep, 0))
                 self.will_end_callback(will_end_at)
                 self.sent_will_end_callback = True
-                await asyncio.sleep(max(will_end_at.timestamp() - time.time(), 0))
-        except Exception as e:
+        else:
+            will_end_at = datetime.now() + timedelta(seconds=STREAM_DELAY)
+            self.will_end_callback(will_end_at)
+
+    async def _encode(self) -> None:
+        try:
+            packet_generator = self.input_container.demux()
+            while True:
+                try:
+                    packet = next(packet_generator)
+                except StopIteration:
+                    # Reached end of file
+                    if self.loop_end is None and ():
+                        # If we're looping, and the loop ends at the end of the file, jump back
+                        self._seek(self.loop_start)
+                        self._handle_completed_loop()
+                        self._broadcast_change()
+                        packet = next(packet_generator)
+                    else:
+                        # Else, stop encoding
+                        break
+
+                await self._handle_packet(
+                    packet, self.output_video_container, self.output_audio_container
+                )
+                self._maybe_send_will_end_callback()
+
+            print(f"Finished encoding from {self.input_video_file_path.name}")
+            self.done = True
+            self._maybe_send_will_end_callback()  # In case we haven't done it already
+            await asyncio.sleep(STREAM_DELAY)
+        except Exception:
             traceback.print_exc()
             raise
         finally:
