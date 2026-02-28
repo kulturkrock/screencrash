@@ -161,7 +161,13 @@ class MediaStreamer:
         # Start encoding
         self.stream_task = asyncio.create_task(self._encode())
 
+    def _close_containers(self) -> None:
+        self.input_container.close()
+        self.output_audio_container.close()
+        self.output_video_container.close()
+
     def _cleanup(self) -> None:
+        # Close everything again, in case _close_containers hasn't been called.
         self.input_container.close()
         self.output_audio_container.close()
         self.output_video_container.close()
@@ -222,16 +228,16 @@ class MediaStreamer:
                 self._maybe_send_will_end_callback()
 
             print(f"Finished encoding from {self.input_video_file_path.name}")
+            self._close_containers()
             self.done = True
             self._maybe_send_will_end_callback()  # In case we haven't done it already
-            await asyncio.sleep(STREAM_DELAY)
         except Exception:
             traceback.print_exc()
             raise
         finally:
             await asyncio.sleep(
-                1
-            )  # Wait a second to let any readers finish, just in case
+                STREAM_DELAY + 1
+            )  # Wait a bit to let any readers finish, just in case
             print(f"Cleaning up {self.input_video_file_path.name}")
             self._cleanup()
 
