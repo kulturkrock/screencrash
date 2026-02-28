@@ -1,4 +1,5 @@
 import domUtils from "./domUtils.js";
+import util from "./util.js";
 
 function create(message, setupFunction) {
   // Destroy old element, in case we haven't been told to by the backend
@@ -27,13 +28,9 @@ function create(message, setupFunction) {
 
 function destroy(entityId, time) {
   const wrapper = document.getElementById(entityId);
-  if (time !== null) {
-    setTimeout(() => {
-      wrapper.parentNode.removeChild(wrapper);
-    }, time - Date.now());
-  } else {
+  util.doAtTime(time, () => {
     wrapper.parentNode.removeChild(wrapper);
-  }
+  });
 }
 
 function _setVisible(wrapper, visible) {
@@ -113,13 +110,9 @@ function setLayer(entityId, layer) {
 
 function fade(entityId, fadeTo, time, fadeStartTime) {
   const wrapper = document.getElementById(entityId);
-  if (fadeStartTime !== null) {
-    setTimeout(() => {
-      doFade(wrapper, fadeTo, time);
-    }, fadeStartTime - Date.now());
-  } else {
+  util.doAtTime(fadeStartTime, () => {
     doFade(wrapper, fadeTo, time);
-  }
+  });
 }
 
 function doFade(wrapper, fadeTo, time) {

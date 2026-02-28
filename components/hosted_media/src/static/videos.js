@@ -1,3 +1,5 @@
+import util from "./util.js";
+
 function attachMediaSource(element, codec, url) {
   const mediaSource = new MediaSource();
   element.src = URL.createObjectURL(mediaSource);
@@ -71,7 +73,7 @@ function play(entityIdOrWrapper, time) {
   const videoElement = wrapper.getElementsByTagName("video")[0];
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
-  setTimeout(() => {
+  util.doAtTime(time, () => {
     console.log(`Started: ${Date.now()}`);
     videoElement.play();
     audioElement.play();
@@ -80,7 +82,7 @@ function play(entityIdOrWrapper, time) {
         `Current time: ${Date.now()}, audio: ${audioElement.currentTime}`,
       );
     }, 1000);
-  }, time - Date.now());
+  });
 }
 
 function pause(entityId, time) {
@@ -88,12 +90,12 @@ function pause(entityId, time) {
   const videoElement = wrapper.getElementsByTagName("video")[0];
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
-  setTimeout(() => {
+  util.doAtTime(time, () => {
     console.log(`Paused: ${Date.now()}`);
     videoElement.pause();
     audioElement.pause();
     clearInterval(tempIntervalId);
-  }, time - Date.now());
+  });
 }
 
 function setMuted(entityId, muted) {
@@ -110,13 +112,9 @@ function setVolume(entityId, volume) {
 
 function fadeAudio(entityId, toVolume, duration, fadeStartTime) {
   const wrapper = document.getElementById(entityId);
-  if (fadeStartTime !== null) {
-    setTimeout(() => {
-      doFade(wrapper, toVolume, duration);
-    }, fadeStartTime - Date.now());
-  } else {
+  util.doAtTime(fadeStartTime, () => {
     doFade(wrapper, toVolume, duration);
-  }
+  });
 }
 
 function doFade(wrapper, toVolume, duration) {
