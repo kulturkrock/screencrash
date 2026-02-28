@@ -81,7 +81,6 @@ class MediaStreamer:
         loop_start: str,
         loop_end: str,
         loops: int,
-        clients_start_time: datetime | None,
         start_at: float,
         effect_changed_callback: Callable[[], None],
         will_end_advance_warning: float,
@@ -142,14 +141,7 @@ class MediaStreamer:
         self.duration = self.input_container.duration / av.time_base
 
         # Setup encoding
-        self.play_pause_status: _Playing | _Paused = (
-            _Paused(pause_time_in_stream=0)
-            if clients_start_time is None
-            else _Playing(
-                clients_start_time=clients_start_time.timestamp(),
-                start_time_in_stream=0,
-            )
-        )
+        self.play_pause_status: _Playing | _Paused = _Paused(pause_time_in_stream=0)
         self.next_video_timestamp: int = 0
         self.next_audio_timestamp: int = 0
         self.last_audio_out_packet: av.Packet | None = None

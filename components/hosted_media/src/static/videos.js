@@ -5,7 +5,9 @@ function attachMediaSource(element, codec, url) {
   mediaSource.addEventListener("sourceopen", async () => {
     const sourceBuffer = mediaSource.addSourceBuffer(codec);
     sourceBuffer.mode = "sequence";
-
+    // We fetch data ourselves instead of giving the URL to the audio/video element
+    // because the element doesn't fetch data aggressively enough, which leads to
+    // stuttering
     const response = await fetch(url);
     if (!response.ok) {
       console.error(`Response status: ${response.status}`);
@@ -35,10 +37,7 @@ function setupVideo(wrapper, message) {
   wrapper.innerHTML = html;
   const videoElement = wrapper.getElementsByTagName("video")[0];
   const audioElement = wrapper.getElementsByTagName("audio")[0];
-  if (message.startTime !== undefined) {
-    const startTime = Date.parse(message.startTime);
-    play(wrapper, startTime);
-  }
+
   audioElement.muted = message.muted;
   audioElement.volume = message.volume / 100;
 

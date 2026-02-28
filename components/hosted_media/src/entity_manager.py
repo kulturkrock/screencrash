@@ -91,7 +91,6 @@ class Video:
     muted: bool
     volume: int
     stream_id: str  # Different from entity ID so the browser doesn't cache the video
-    clients_start_time: datetime | None
     media_streamer: MediaStreamer
 
     def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
@@ -112,8 +111,6 @@ class Video:
             "muted": self.muted,
             "volume": self.volume,
         }
-        if self.clients_start_time is not None:
-            message["startTime"] = self.clients_start_time.isoformat()
         if fade is not None:
             message["fadeIn"] = {
                 "from": fade.fade_from,
@@ -234,13 +231,6 @@ class EntityManager:
                 visible=message.get("visible", False),
             )
         elif type == "video":
-            autostart = message.get("autostart", True)
-            if autostart:
-                clients_start_time = datetime.now() + timedelta(
-                    seconds=CLIENT_PRECISE_ACTION_DELAY
-                )
-            else:
-                clients_start_time = None
             if "fadeOut" in message:
                 fade_out_time = message["fadeOut"]
                 will_end_advance_warning = fade_out_time + CLIENT_PRECISE_ACTION_DELAY
@@ -266,7 +256,6 @@ class EntityManager:
                 loop_start=message.get("loop_start", "00:00:00.000000"),
                 loop_end=message.get("loop_end", "end"),
                 loops=message.get("looping", 1),
-                clients_start_time=clients_start_time,
                 start_at=message.get("start_at", 0),
                 effect_changed_callback=lambda: self.broadcast_change_message(
                     self.entities[entity_id]
@@ -296,7 +285,6 @@ class EntityManager:
                 muted=False,
                 volume=100,
                 stream_id=stream_id,
-                clients_start_time=clients_start_time,
                 media_streamer=streamer,
             )
         else:
@@ -311,6 +299,8 @@ class EntityManager:
             fade = None
         self.entities[entity_id] = new_entity
         self.broadcast_create_message(new_entity, fade)
+        if message.get("autostart", True):
+            self.play(entity_id)
         self.broadcast_core_message(
             {"messageType": "effect-added", "entityId": entity_id}
             | new_entity.get_state_for_core()
