@@ -181,10 +181,18 @@ class MediaStreamer:
 
     def _seek(self, position_in_av_time_base: int) -> None:
         self.input_container.seek(position_in_av_time_base)
-        self.latest_input_audio_timestamp = (
-            position_in_av_time_base  # So we can broadcast events
-        )
-        # TODO: Can we do better?
+        self.latest_input_audio_timestamp = position_in_av_time_base  # So we can broadcast changes immediately and get correct data
+
+    def _handle_packet(
+        self,
+        packet: av.Packet,
+        output_video_container: av.container.OutputContainer,
+        output_audio_container: av.container.OutputContainer,
+    ):
+        if packet.stream.type == "video":
+            self._handle_video_packet(packet, output_video_container)
+        elif packet.stream.type == "audio":
+            self._handle_audio_packet(packet, output_audio_container)
 
     def _maybe_send_will_end_callback(self) -> None:
         if self.sent_will_end_callback:
@@ -204,6 +212,35 @@ class MediaStreamer:
             will_end_at = datetime.now() + timedelta(seconds=STREAM_DELAY)
             self.will_end_callback(will_end_at)
 
+    async def _sleep_as_appropriate(self) -> None:
+        if isinstance(self.play_pause_status, _Playing):
+            # Let's use the audio stream timestamps to see how far we've encoded, and make sure
+            # we don't get too far ahead. We're trusting that the clients really did start playing
+            # at the time they were told.
+            played_time_since_unpause = (
+                time.time() - self.play_pause_status.clients_start_time
+            )
+
+            encoded_time_since_unpause = (
+                self.latest_output_audio_timestamp
+                - self.play_pause_status.start_time_in_stream
+            ) / av.time_base
+            if encoded_time_since_unpause - played_time_since_unpause > STREAM_DELAY:
+                await asyncio.sleep(
+                    encoded_time_since_unpause
+                    - played_time_since_unpause
+                    - STREAM_DELAY
+                )
+        else:
+            encoded_after_pause = (
+                self.latest_output_audio_timestamp
+                - self.play_pause_status.pause_time_in_stream
+            ) / av.time_base
+            if encoded_after_pause > STREAM_DELAY:
+                # Wait for unpausing before doing anything else
+                while isinstance(self.play_pause_status, _Paused):
+                    await asyncio.sleep(0.1)
+
     async def _encode(self) -> None:
         try:
             packet_generator = self.input_container.demux()
@@ -222,10 +259,11 @@ class MediaStreamer:
                         # Else, stop encoding
                         break
 
-                await self._handle_packet(
+                self._handle_packet(
                     packet, self.output_video_container, self.output_audio_container
                 )
                 self._maybe_send_will_end_callback()
+                await self._sleep_as_appropriate()
 
             print(f"Finished encoding from {self.input_video_file_path.name}")
             self._close_containers()
@@ -306,47 +344,6 @@ class MediaStreamer:
     def _handle_completed_loop(self):
         if self.loops_left is not None:
             self.loops_left -= 1
-
-    async def _handle_packet(
-        self,
-        packet: av.Packet,
-        output_video_container: av.container.OutputContainer,
-        output_audio_container: av.container.OutputContainer,
-    ):
-        if packet.stream.type == "video":
-            self._handle_video_packet(packet, output_video_container)
-        elif packet.stream.type == "audio":
-            self._handle_audio_packet(packet, output_audio_container)
-            if isinstance(self.play_pause_status, _Playing):
-                # Let's use the audio stream timestamps to see how far we've encoded, and make sure
-                # we don't get too far ahead. We're trusting that the clients really did start playing
-                # at the time they were told.
-                played_time_since_unpause = (
-                    time.time() - self.play_pause_status.clients_start_time
-                )
-
-                encoded_time_since_unpause = (
-                    self.latest_output_audio_timestamp
-                    - self.play_pause_status.start_time_in_stream
-                ) / av.time_base
-                if (
-                    encoded_time_since_unpause - played_time_since_unpause
-                    > STREAM_DELAY
-                ):
-                    await asyncio.sleep(
-                        encoded_time_since_unpause
-                        - played_time_since_unpause
-                        - STREAM_DELAY
-                    )
-            else:
-                encoded_after_pause = (
-                    self.latest_output_audio_timestamp
-                    - self.play_pause_status.pause_time_in_stream
-                ) / av.time_base
-                if encoded_after_pause > STREAM_DELAY:
-                    # Wait for unpausing before doing anything else
-                    while isinstance(self.play_pause_status, _Paused):
-                        await asyncio.sleep(0.1)
 
     def _handle_video_packet(
         self, packet: av.Packet, output_container: av.container.OutputContainer
