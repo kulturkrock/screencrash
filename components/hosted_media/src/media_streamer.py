@@ -38,7 +38,7 @@ from util import assert_and_get_one
 
 STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"))
 SYNC_EVENT_INTERVAL = float(
-    os.environ.get("SCREENCRASH_HOSTED_MEDIA_SYNC_EVENT_INTERVAL", "2")
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_SYNC_EVENT_INTERVAL", "30")
 )
 
 
@@ -281,18 +281,21 @@ class MediaStreamer:
 
     async def _send_sync_events(self) -> None:
         while True:
+            await asyncio.sleep(SYNC_EVENT_INTERVAL)
             if isinstance(self.play_pause_status, _Playing):
-                played_seconds_since_unpause = (
+                encoded_seconds_since_unpause = (
                     self.latest_output_audio_timestamp
                     - self.play_pause_status.start_time_in_stream
                 ) / av.time_base
                 playout_time = datetime.fromtimestamp(
                     self.play_pause_status.clients_start_time
-                    + played_seconds_since_unpause
+                    + encoded_seconds_since_unpause
                 )
                 time_in_file = self.latest_output_audio_timestamp / av.time_base
+                print(
+                    f"playout: {playout_time}, infile: {time_in_file:5f}, latest: {self.latest_output_audio_timestamp}"
+                )
                 self.sync_event_callback(playout_time, time_in_file)
-            await asyncio.sleep(SYNC_EVENT_INTERVAL)
 
     def set_loop_count(self, loops: int) -> None:
         self.loops_left = None if loops == 0 else loops - 1
@@ -328,14 +331,14 @@ class MediaStreamer:
             return  # Already playing
         self.play_pause_status = _Playing(
             clients_start_time=clients_play_time.timestamp(),
-            start_time_in_stream=self.play_pause_status.pause_time_in_stream,
+            start_time_in_stream=self.latest_output_audio_timestamp,
         )
 
     def pause(self) -> None:
         if isinstance(self.play_pause_status, _Paused):
             return  # Already paused
         self.play_pause_status = _Paused(
-            pause_time_in_stream=self.latest_output_audio_timestamp  # TODO: I think this is a bug?
+            pause_time_in_stream=self.latest_output_audio_timestamp
         )
 
     def seek(self, position: float) -> None:

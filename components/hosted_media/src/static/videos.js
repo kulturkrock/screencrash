@@ -42,6 +42,7 @@ function setupVideo(wrapper, message) {
 
   audioElement.muted = message.muted;
   audioElement.volume = message.volume / 100;
+  audioElement.preservesPitch = false; // TODO: Is this worth it?
 
   attachMediaSource(
     videoElement,
@@ -80,7 +81,6 @@ function pause(entityId, time) {
   util.doAtTime(time, () => {
     videoElement.pause();
     audioElement.pause();
-    clearInterval(tempIntervalId);
   });
 }
 
@@ -122,23 +122,47 @@ function doFade(wrapper, toVolume, duration) {
 }
 
 function syncTime(entityId, playoutTime, mediaTimeSeconds) {
+  console.log(
+    `Sync msg: ${mediaTimeSeconds}=${new Date(playoutTime).toISOString().split("T")[1].replace("Z", "")}`,
+  );
   const wrapper = document.getElementById(entityId);
   if (wrapper === null) {
     return; // Element removed, ignore
   }
   const videoElement = wrapper.getElementsByTagName("video")[0];
   const audioElement = wrapper.getElementsByTagName("audio")[0];
-  const now = Date.now();
-  const playoutRelativeToNow = (playoutTime - now) / 1000;
-  const expectedCurrent = mediaTimeSeconds - playoutRelativeToNow;
-  console.log(mediaTimeSeconds);
-  console.log(playoutRelativeToNow);
-  console.log(
-    `Current time: ${now}, audio: ${audioElement.currentTime}, video: ${videoElement.currentTime}`,
-  );
-  console.log(
-    `Diffs - audio: ${audioElement.currentTime - expectedCurrent}, video: ${videoElement.currentTime - expectedCurrent}`,
-  );
+
+  const syncInterval = setInterval(() => {
+    const currentAudioTime = audioElement.currentTime;
+    const currentVideoTime = videoElement.currentTime;
+    const now = performance.timeOrigin + performance.now();
+    const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
+    const audioDiff = projectedAudioTime - mediaTimeSeconds;
+    console.log(`Audio diff: ${audioDiff}`);
+    if (audioDiff > 0.01) {
+      audioElement.playbackRate = 0.995;
+    } else if (audioDiff < -0.01) {
+      audioElement.playbackRate = 1.005;
+    } else {
+      audioElement.playbackRate = 1;
+    }
+
+    const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
+    const videoDiff = projectedVideoTime - mediaTimeSeconds;
+    console.log(`Video diff: ${videoDiff}`);
+    if (videoDiff > 0.01) {
+      videoElement.playbackRate = 0.99;
+    } else if (audioDiff < -0.01) {
+      videoElement.playbackRate = 1.01;
+    } else {
+      videoElement.playbackRate = 1;
+    }
+  }, 1000);
+  setTimeout(() => {
+    clearInterval(syncInterval);
+    audioElement.playbackRate = 1;
+    videoElement.playbackRate = 1;
+  }, 10 * 1000);
 }
 
 export default {
