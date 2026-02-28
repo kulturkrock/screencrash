@@ -266,6 +266,8 @@ class EntityManager:
                 loop_start=message.get("loop_start", "00:00:00.000000"),
                 loop_end=message.get("loop_end", "end"),
                 loops=message.get("looping", 1),
+                clients_start_time=clients_start_time,
+                start_at=message.get("start_at", 0),
                 effect_changed_callback=lambda: self.broadcast_change_message(
                     self.entities[entity_id]
                 ),
@@ -279,10 +281,6 @@ class EntityManager:
             )
             for listener in self.create_media_streamer_listeners:
                 listener(stream_id, streamer)
-            streamer.start(
-                clients_start_time,
-                message.get("start_at", 0),
-            )
             new_entity = Video(
                 entity_id=entity_id,
                 asset=message["asset"],
