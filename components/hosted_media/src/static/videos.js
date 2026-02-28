@@ -54,14 +54,7 @@ function setupVideo(wrapper, message) {
     'audio/webm; codecs="opus"',
     `/api/stream/${message.streamId}/audio`,
   );
-
-  audioElement.addEventListener("ended", () =>
-    console.log(`Ended ${Date.now()}`),
-  );
 }
-
-// Temporary, will not work if there are multiple videos at the same time
-let tempIntervalId;
 
 function play(entityIdOrWrapper, time) {
   let wrapper;
@@ -74,14 +67,8 @@ function play(entityIdOrWrapper, time) {
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
   util.doAtTime(time, () => {
-    console.log(`Started: ${Date.now()}`);
     videoElement.play();
     audioElement.play();
-    tempIntervalId = setInterval(() => {
-      console.log(
-        `Current time: ${Date.now()}, audio: ${audioElement.currentTime}`,
-      );
-    }, 1000);
   });
 }
 
@@ -91,7 +78,6 @@ function pause(entityId, time) {
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
   util.doAtTime(time, () => {
-    console.log(`Paused: ${Date.now()}`);
     videoElement.pause();
     audioElement.pause();
     clearInterval(tempIntervalId);
@@ -135,4 +121,32 @@ function doFade(wrapper, toVolume, duration) {
   }, stepTime);
 }
 
-export default { setupVideo, play, pause, setMuted, setVolume, fadeAudio };
+function syncTime(entityId, playoutTime, mediaTimeSeconds) {
+  const wrapper = document.getElementById(entityId);
+  if (wrapper === null) {
+    return; // Element removed, ignore
+  }
+  const videoElement = wrapper.getElementsByTagName("video")[0];
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+  const now = Date.now();
+  const playoutRelativeToNow = (playoutTime - now) / 1000;
+  const expectedCurrent = mediaTimeSeconds - playoutRelativeToNow;
+  console.log(mediaTimeSeconds);
+  console.log(playoutRelativeToNow);
+  console.log(
+    `Current time: ${now}, audio: ${audioElement.currentTime}, video: ${videoElement.currentTime}`,
+  );
+  console.log(
+    `Diffs - audio: ${audioElement.currentTime - expectedCurrent}, video: ${videoElement.currentTime - expectedCurrent}`,
+  );
+}
+
+export default {
+  setupVideo,
+  play,
+  pause,
+  setMuted,
+  setVolume,
+  fadeAudio,
+  syncTime,
+};

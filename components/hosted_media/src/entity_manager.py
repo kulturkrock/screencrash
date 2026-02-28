@@ -250,6 +250,17 @@ class EntityManager:
             else:
                 will_end_advance_warning = CLIENT_PRECISE_ACTION_DELAY
                 will_end_callback = lambda end_time: None
+
+            sync_event_callback = (
+                lambda playout_time, file_time: self.broadcast_webpage_message(
+                    {
+                        "command": "syncTime",
+                        "entityId": entity_id,
+                        "playoutTime": playout_time.isoformat(),
+                        "mediaTimeSeconds": file_time,
+                    }
+                )
+            )
             streamer = MediaStreamer(
                 asset=message["asset"],
                 asset_dir=self.asset_dir,
@@ -262,6 +273,7 @@ class EntityManager:
                 ),
                 will_end_advance_warning=will_end_advance_warning,
                 will_end_callback=will_end_callback,
+                sync_event_callback=sync_event_callback,
             )
             stream_id = (
                 entity_id

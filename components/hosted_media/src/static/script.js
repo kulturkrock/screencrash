@@ -56,6 +56,12 @@ function subscribe() {
       videos.setMuted(message.entityId, false);
     } else if (message.command === "setVolume") {
       videos.setVolume(message.entityId, message.volume);
+    } else if (message.command === "syncTime") {
+      videos.syncTime(
+        message.entityId,
+        Date.parse(message.playoutTime),
+        message.mediaTimeSeconds,
+      );
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`,

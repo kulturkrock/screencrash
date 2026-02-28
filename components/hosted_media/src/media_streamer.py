@@ -37,6 +37,9 @@ from util import assert_and_get_one
 # (Replace the timestamps of -force_key_frames with your loop start times)
 
 STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"))
+SYNC_EVENT_INTERVAL = float(
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_SYNC_EVENT_INTERVAL", "2")
+)
 
 
 def _parse_timestamp(timestamp: str) -> int:  # In av.time_base
@@ -89,12 +92,16 @@ class MediaStreamer:
         will_end_callback: Callable[
             [datetime], None
         ],  # Function that takes the expected end of the clients' played streams
+        sync_event_callback: Callable[
+            [datetime, float], None
+        ],  # Function that takes the playout time and the corresponding time in the output file
     ):
         # Setup callbacks
         self.effect_changed_callback = effect_changed_callback
         self.will_end_advance_warning = will_end_advance_warning
         self.will_end_callback = will_end_callback
         self.sent_will_end_callback = False
+        self.sync_event_callback = sync_event_callback
 
         # Setup looping
         self.loop_start = _parse_timestamp(loop_start)
@@ -160,6 +167,7 @@ class MediaStreamer:
 
         # Start encoding
         self.stream_task = asyncio.create_task(self._encode())
+        self.sync_events_task = asyncio.create_task(self._send_sync_events())
 
     def _close_containers(self) -> None:
         self.input_container.close()
@@ -167,6 +175,7 @@ class MediaStreamer:
         self.output_video_container.close()
 
     def _cleanup(self) -> None:
+        self.sync_events_task.cancel()
         # Close everything again, in case _close_containers hasn't been called.
         self.input_container.close()
         self.output_audio_container.close()
@@ -269,6 +278,21 @@ class MediaStreamer:
             )  # Wait a bit to let any readers finish, just in case
             print(f"Cleaning up {self.input_video_file_path.name}")
             self._cleanup()
+
+    async def _send_sync_events(self) -> None:
+        while True:
+            if isinstance(self.play_pause_status, _Playing):
+                played_seconds_since_unpause = (
+                    self.latest_output_audio_timestamp
+                    - self.play_pause_status.start_time_in_stream
+                ) / av.time_base
+                playout_time = datetime.fromtimestamp(
+                    self.play_pause_status.clients_start_time
+                    + played_seconds_since_unpause
+                )
+                time_in_file = self.latest_output_audio_timestamp / av.time_base
+                self.sync_event_callback(playout_time, time_in_file)
+            await asyncio.sleep(SYNC_EVENT_INTERVAL)
 
     def set_loop_count(self, loops: int) -> None:
         self.loops_left = None if loops == 0 else loops - 1
