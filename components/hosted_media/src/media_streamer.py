@@ -252,7 +252,7 @@ class MediaStreamer:
                     if self.loop_end is None and ():
                         # If we're looping, and the loop ends at the end of the file, jump back
                         self._seek(self.loop_start)
-                        self._handle_completed_loop()
+                        self._decrease_loops_left()
                         self._broadcast_change()
                         packet = next(packet_generator)
                     else:
@@ -341,7 +341,7 @@ class MediaStreamer:
         else:
             return self.output_audio_file_path
 
-    def _handle_completed_loop(self):
+    def _decrease_loops_left(self):
         if self.loops_left is not None:
             self.loops_left -= 1
 
@@ -447,7 +447,7 @@ class MediaStreamer:
 
             self.input_container.seek(seek_to, any_frame=True)
             self.waiting_for_video_keyframe = True
-            self._handle_completed_loop()
+            self._decrease_loops_left()
         else:
             # A normal audio packet, just re-encode it
 
