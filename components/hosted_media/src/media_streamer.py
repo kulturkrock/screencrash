@@ -40,6 +40,9 @@ STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"
 SYNC_EVENT_INTERVAL = float(
     os.environ.get("SCREENCRASH_HOSTED_MEDIA_SYNC_EVENT_INTERVAL", "30")
 )
+TIME_BEFORE_FIRST_SYNC = float(
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_TIME_BEFORE_FIRST_SYNC", "1")
+)
 
 
 def _parse_timestamp(timestamp: str) -> int:  # In av.time_base
@@ -280,8 +283,10 @@ class MediaStreamer:
             self._cleanup()
 
     async def _send_sync_events(self) -> None:
+        await asyncio.sleep(
+            TIME_BEFORE_FIRST_SYNC
+        )  # Sleep before the first one, to give the playback time to stabilize
         while True:
-            await asyncio.sleep(SYNC_EVENT_INTERVAL)
             if isinstance(self.play_pause_status, _Playing):
                 encoded_seconds_since_unpause = (
                     self.latest_output_audio_timestamp
@@ -296,6 +301,7 @@ class MediaStreamer:
                     f"playout: {playout_time}, infile: {time_in_file:5f}, latest: {self.latest_output_audio_timestamp}"
                 )
                 self.sync_event_callback(playout_time, time_in_file)
+            await asyncio.sleep(SYNC_EVENT_INTERVAL)
 
     def set_loop_count(self, loops: int) -> None:
         self.loops_left = None if loops == 0 else loops - 1

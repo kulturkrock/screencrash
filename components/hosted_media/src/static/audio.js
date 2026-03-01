@@ -39,7 +39,9 @@ function setupAudio(wrapper, message) {
 
   audioElement.muted = message.muted;
   audioElement.volume = message.volume / 100;
-  audioElement.preservesPitch = false; // TODO: Is this worth it?
+  // Prevents audio popping when changing playbackSpeed to sync times.
+  // But we need to keep playbackSpeed close to 1 or we will hear the change in pitch!
+  audioElement.preservesPitch = false;
 
   attachMediaSource(
     audioElement,
@@ -57,7 +59,9 @@ function play(entityIdOrWrapper, time) {
   }
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
-  util.doAtTime(time, () => {
+  // Start a little earlier to account for delays in the browser.
+  // Not exact, but will be synced more finely later.
+  util.doAtTime(time - 80, () => {
     audioElement.play();
   });
 }
@@ -108,9 +112,18 @@ function doFade(wrapper, toVolume, duration) {
   }, stepTime);
 }
 
+function formatDiff(diff) {
+  const diffInMs = Math.round(diff * 1000);
+  if (diffInMs >= 0) {
+    return `${diffInMs}ms ahead of target`;
+  } else {
+    return `${-diffInMs}ms behind target`;
+  }
+}
+
 function syncTime(entityId, playoutTime, mediaTimeSeconds) {
-  console.log(
-    `Sync msg: ${mediaTimeSeconds}=${new Date(playoutTime).toISOString().split("T")[1].replace("Z", "")}`,
+  console.info(
+    `Got audio sync message for ${entityId}: ${mediaTimeSeconds}=${new Date(playoutTime).toISOString().split("T")[1].replace("Z", "")}`,
   );
   const wrapper = document.getElementById(entityId);
   if (wrapper === null) {
@@ -123,13 +136,23 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
     const now = performance.timeOrigin + performance.now();
     const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
     const audioDiff = projectedAudioTime - mediaTimeSeconds;
-    console.log(`Audio diff: ${audioDiff}`);
     if (audioDiff > 0.01) {
+      console.info(
+        `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
+      );
       audioElement.playbackRate = 0.995;
     } else if (audioDiff < -0.01) {
+      console.info(
+        `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly faster.`,
+      );
       audioElement.playbackRate = 1.005;
     } else {
-      audioElement.playbackRate = 1;
+      if (audioElement.playbackRate !== 1) {
+        console.info(
+          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing at normal speed.`,
+        );
+        audioElement.playbackRate = 1;
+      }
     }
   }, 1000);
   setTimeout(() => {

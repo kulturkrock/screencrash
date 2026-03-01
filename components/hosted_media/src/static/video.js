@@ -67,9 +67,18 @@ function pause(entityId, time) {
   });
 }
 
+function formatDiff(diff) {
+  const diffInMs = Math.round(diff * 1000);
+  if (diffInMs >= 0) {
+    return `${diffInMs}ms ahead of target`;
+  } else {
+    return `${-diffInMs}ms behind target`;
+  }
+}
+
 function syncTime(entityId, playoutTime, mediaTimeSeconds) {
-  console.log(
-    `Sync msg: ${mediaTimeSeconds}=${new Date(playoutTime).toISOString().split("T")[1].replace("Z", "")}`,
+  console.info(
+    `Got video sync message for '${entityId}': ${mediaTimeSeconds}=${new Date(playoutTime).toISOString().split("T")[1].replace("Z", "")}`,
   );
   const wrapper = document.getElementById(entityId);
   if (wrapper === null) {
@@ -83,13 +92,23 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
 
     const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
     const videoDiff = projectedVideoTime - mediaTimeSeconds;
-    console.log(`Video diff: ${videoDiff}`);
     if (videoDiff > 0.01) {
+      console.info(
+        `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly slower.`,
+      );
       videoElement.playbackRate = 0.99;
     } else if (videoDiff < -0.01) {
+      console.info(
+        `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly faster.`,
+      );
       videoElement.playbackRate = 1.01;
     } else {
-      videoElement.playbackRate = 1;
+      if (videoElement.playbackRate !== 1) {
+        console.info(
+          `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing at normal speed.`,
+        );
+        videoElement.playbackRate = 1;
+      }
     }
   }, 1000);
   setTimeout(() => {

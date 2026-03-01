@@ -1,5 +1,5 @@
 function doAtTime(timestamp, callback) {
-  const now = Date.now();
+  const now = performance.timeOrigin + performance.now();
   if (timestamp === null || timestamp - now <= 0) {
     callback();
   } else {

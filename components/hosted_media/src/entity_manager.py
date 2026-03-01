@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import os
 
 CLIENT_PRECISE_ACTION_DELAY = float(
-    os.environ.get("SCREENCRASH_HOSTED_MEDIA_CLIENT_PRECISE_ACTION_DELAY", "0.1")
+    os.environ.get("SCREENCRASH_HOSTED_MEDIA_CLIENT_PRECISE_ACTION_DELAY", "0.2")
 )
 
 
