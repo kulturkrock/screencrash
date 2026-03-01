@@ -1,5 +1,5 @@
 import images from "./images.js";
-import videos from "./videos.js";
+import video from "./video.js";
 import wrappers from "./wrappers.js";
 import domUtils from "./domUtils.js";
 
@@ -15,7 +15,7 @@ function subscribe() {
     } else if (message.command === "create" && message.type === "image") {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {
-      wrappers.create(message, videos.setupVideo);
+      wrappers.create(message, video.setupVideo);
     } else if (message.command === "setVisible") {
       wrappers.setVisible(message.entityId, message.visible);
     } else if (message.command === "setOpacity") {
@@ -39,7 +39,7 @@ function subscribe() {
         message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
       );
       if (message.alsoFadeAudio) {
-        videos.fadeAudio(
+        video.fadeAudio(
           message.entityId,
           message.to,
           message.time,
@@ -47,17 +47,17 @@ function subscribe() {
         );
       }
     } else if (message.command === "play") {
-      videos.play(message.entityId, Date.parse(message.time));
+      video.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {
-      videos.pause(message.entityId, Date.parse(message.time));
+      video.pause(message.entityId, Date.parse(message.time));
     } else if (message.command === "mute") {
-      videos.setMuted(message.entityId, true);
+      video.setMuted(message.entityId, true);
     } else if (message.command === "unmute") {
-      videos.setMuted(message.entityId, false);
+      video.setMuted(message.entityId, false);
     } else if (message.command === "setVolume") {
-      videos.setVolume(message.entityId, message.volume);
+      video.setVolume(message.entityId, message.volume);
     } else if (message.command === "syncTime") {
-      videos.syncTime(
+      video.syncTime(
         message.entityId,
         Date.parse(message.playoutTime),
         message.mediaTimeSeconds,
