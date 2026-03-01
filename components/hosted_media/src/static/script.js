@@ -1,5 +1,6 @@
 import images from "./images.js";
 import video from "./video.js";
+import audio from "./audio.js";
 import wrappers from "./wrappers.js";
 import domUtils from "./domUtils.js";
 
@@ -15,7 +16,7 @@ function subscribe() {
     } else if (message.command === "create" && message.type === "image") {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {
-      wrappers.create(message, video.setupVideo);
+      wrappers.create(message, video.setupVideo, audio.setupAudio);
     } else if (message.command === "setVisible") {
       wrappers.setVisible(message.entityId, message.visible);
     } else if (message.command === "setOpacity") {
@@ -39,7 +40,7 @@ function subscribe() {
         message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
       );
       if (message.alsoFadeAudio) {
-        video.fadeAudio(
+        audio.fadeAudio(
           message.entityId,
           message.to,
           message.time,
@@ -48,16 +49,23 @@ function subscribe() {
       }
     } else if (message.command === "play") {
       video.play(message.entityId, Date.parse(message.time));
+      audio.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {
       video.pause(message.entityId, Date.parse(message.time));
+      audio.pause(message.entityId, Date.parse(message.time));
     } else if (message.command === "mute") {
-      video.setMuted(message.entityId, true);
+      audio.setMuted(message.entityId, true);
     } else if (message.command === "unmute") {
-      video.setMuted(message.entityId, false);
+      audio.setMuted(message.entityId, false);
     } else if (message.command === "setVolume") {
-      video.setVolume(message.entityId, message.volume);
+      audio.setVolume(message.entityId, message.volume);
     } else if (message.command === "syncTime") {
       video.syncTime(
+        message.entityId,
+        Date.parse(message.playoutTime),
+        message.mediaTimeSeconds,
+      );
+      audio.syncTime(
         message.entityId,
         Date.parse(message.playoutTime),
         message.mediaTimeSeconds,

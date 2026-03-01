@@ -1,7 +1,7 @@
 import domUtils from "./domUtils.js";
 import util from "./util.js";
 
-function create(message, setupFunction) {
+function create(message, setupFunction, secondSetupFunction) {
   // Destroy old element, in case we haven't been told to by the backend
   if (document.getElementById(message.entityId) !== null) {
     destroy(message.entityId);
@@ -22,6 +22,9 @@ function create(message, setupFunction) {
   );
   _setLayer(wrapper, message.layer);
   setupFunction(wrapper, message);
+  if (secondSetupFunction) {
+    secondSetupFunction(wrapper, message);
+  }
 
   document.body.appendChild(wrapper);
 }
