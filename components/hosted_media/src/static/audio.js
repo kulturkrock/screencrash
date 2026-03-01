@@ -131,11 +131,21 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
   }
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
+  // First log, just for troubleshooting
+  const currentAudioTime = audioElement.currentTime;
+  const now = performance.timeOrigin + performance.now();
+
+  const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
+  const audioDiff = projectedAudioTime - mediaTimeSeconds;
+  console.info(`Audio '${entityId}' is ${formatDiff(audioDiff)}.`);
+
   const syncInterval = setInterval(() => {
     const currentAudioTime = audioElement.currentTime;
     const now = performance.timeOrigin + performance.now();
     const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
     const audioDiff = projectedAudioTime - mediaTimeSeconds;
+    // Minimum discernable difference in pitch seems to be around 0.5%
+    // https://music.stackexchange.com/a/122645
     if (audioDiff > 0.01) {
       console.info(
         `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
@@ -154,7 +164,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
         audioElement.playbackRate = 1;
       }
     }
-  }, 1000);
+  }, 500);
   setTimeout(() => {
     clearInterval(syncInterval);
     audioElement.playbackRate = 1;

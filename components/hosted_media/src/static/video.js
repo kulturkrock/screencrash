@@ -86,6 +86,14 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
   }
   const videoElement = wrapper.getElementsByTagName("video")[0];
 
+  // First log, just for troubleshooting
+  const currentVideoTime = videoElement.currentTime;
+  const now = performance.timeOrigin + performance.now();
+
+  const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
+  const videoDiff = projectedVideoTime - mediaTimeSeconds;
+  console.info(`Video '${entityId}' is ${formatDiff(videoDiff)}.`);
+
   const syncInterval = setInterval(() => {
     const currentVideoTime = videoElement.currentTime;
     const now = performance.timeOrigin + performance.now();
@@ -110,7 +118,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
         videoElement.playbackRate = 1;
       }
     }
-  }, 1000);
+  }, 500);
   setTimeout(() => {
     clearInterval(syncInterval);
     videoElement.playbackRate = 1;
