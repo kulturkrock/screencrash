@@ -151,17 +151,24 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
       const now = performance.timeOrigin + performance.now();
       const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
       const audioDiff = projectedAudioTime - mediaTimeSeconds;
-      // Minimum discernable difference in pitch seems to be around 0.5%
-      // https://music.stackexchange.com/a/122645
-      if (audioDiff > 0.01) {
+
+      if (Math.abs(audioDiff) > 0.2) {
+        console.info(
+          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Jumping.`,
+        );
+        audioElement.currentTime = mediaTimeSeconds;
+      } else if (audioDiff > 0.01) {
         console.info(
           `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
         );
+        // Minimum discernable difference in pitch seems to be around 0.5%
+        // https://music.stackexchange.com/a/122645
         audioElement.playbackRate = 0.999;
       } else if (audioDiff < -0.01) {
         console.info(
           `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly faster.`,
         );
+        // Same here
         audioElement.playbackRate = 1.001;
       } else {
         if (audioElement.playbackRate !== 1) {
