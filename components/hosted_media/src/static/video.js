@@ -53,12 +53,13 @@ function play(entityId, time) {
   });
 }
 
-function pause(entityId, time) {
+function pause(entityId, time, pauseTimeInStream) {
   const wrapper = document.getElementById(entityId);
   const videoElement = wrapper.getElementsByTagName("video")[0];
 
   util.doAtTime(time, () => {
     videoElement.pause();
+    videoElement.currentTime = pauseTimeInStream;
   });
 }
 

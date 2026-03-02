@@ -51,8 +51,16 @@ function subscribe() {
       video.play(message.entityId, Date.parse(message.time));
       audio.play(message.entityId, Date.parse(message.time));
     } else if (message.command === "pause") {
-      video.pause(message.entityId, Date.parse(message.time));
-      audio.pause(message.entityId, Date.parse(message.time));
+      video.pause(
+        message.entityId,
+        Date.parse(message.time),
+        message.pauseTimeInStream,
+      );
+      audio.pause(
+        message.entityId,
+        Date.parse(message.time),
+        message.pauseTimeInStream,
+      );
     } else if (message.command === "mute") {
       audio.setMuted(message.entityId, true);
     } else if (message.command === "unmute") {

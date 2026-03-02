@@ -487,14 +487,15 @@ class EntityManager:
         clients_pause_time = datetime.now() + timedelta(
             seconds=CLIENT_PRECISE_ACTION_DELAY
         )
+        pause_time_in_stream = entity.media_streamer.pause(clients_pause_time)
         self.broadcast_webpage_message(
             {
                 "command": "pause",
                 "entityId": entity_id,
                 "time": clients_pause_time.isoformat(),
+                "pauseTimeInStream": pause_time_in_stream,
             }
         )
-        entity.media_streamer.pause()
         self.broadcast_change_message(entity)
 
     def seek(self, entity_id: str, position: float) -> None:

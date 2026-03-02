@@ -337,15 +337,22 @@ class MediaStreamer:
             return  # Already playing
         self.play_pause_status = _Playing(
             clients_start_time=clients_play_time.timestamp(),
-            start_time_in_stream=self.latest_output_audio_timestamp,
+            start_time_in_stream=self.play_pause_status.pause_time_in_stream,
         )
 
-    def pause(self) -> None:
+    def pause(self, clients_pause_time: datetime) -> float | None:
         if isinstance(self.play_pause_status, _Paused):
             return  # Already paused
-        self.play_pause_status = _Paused(
-            pause_time_in_stream=self.latest_output_audio_timestamp
+        # Guess current played time in stream
+        played_seconds_since_unpause = (
+            clients_pause_time.timestamp() - self.play_pause_status.clients_start_time
         )
+        pause_time_in_stream = round(
+            self.play_pause_status.start_time_in_stream
+            + played_seconds_since_unpause * av.time_base
+        )
+        self.play_pause_status = _Paused(pause_time_in_stream=pause_time_in_stream)
+        return pause_time_in_stream / av.time_base
 
     def seek(self, position: float) -> None:
         self._seek(round(position * av.time_base))
