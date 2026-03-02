@@ -157,12 +157,12 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
         console.info(
           `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
         );
-        audioElement.playbackRate = 0.995;
+        audioElement.playbackRate = 0.999;
       } else if (audioDiff < -0.01) {
         console.info(
           `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly faster.`,
         );
-        audioElement.playbackRate = 1.005;
+        audioElement.playbackRate = 1.001;
       } else {
         if (audioElement.playbackRate !== 1) {
           console.info(
