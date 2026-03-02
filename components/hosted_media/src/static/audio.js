@@ -134,36 +134,45 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
   const audioDiff = projectedAudioTime - mediaTimeSeconds;
   console.info(`Audio '${entityId}' is ${formatDiff(audioDiff)}.`);
 
+  const cancelSyncing = () => {
+    console.info(
+      `Stopping audio sync for ${entityId}, playing at normal speed`,
+    );
+    clearInterval(syncInterval);
+    audioElement.removeEventListener("pause", cancelSyncing);
+    audioElement.playbackRate = 1;
+  };
+  audioElement.addEventListener("pause", cancelSyncing);
+
   const syncInterval = setInterval(() => {
-    const currentAudioTime = audioElement.currentTime;
-    const now = performance.timeOrigin + performance.now();
-    const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
-    const audioDiff = projectedAudioTime - mediaTimeSeconds;
-    // Minimum discernable difference in pitch seems to be around 0.5%
-    // https://music.stackexchange.com/a/122645
-    if (audioDiff > 0.01) {
-      console.info(
-        `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
-      );
-      audioElement.playbackRate = 0.995;
-    } else if (audioDiff < -0.01) {
-      console.info(
-        `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly faster.`,
-      );
-      audioElement.playbackRate = 1.005;
-    } else {
-      if (audioElement.playbackRate !== 1) {
+    if (!audioElement.paused) {
+      const currentAudioTime = audioElement.currentTime;
+      const now = performance.timeOrigin + performance.now();
+      const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
+      const audioDiff = projectedAudioTime - mediaTimeSeconds;
+      // Minimum discernable difference in pitch seems to be around 0.5%
+      // https://music.stackexchange.com/a/122645
+      if (audioDiff > 0.01) {
         console.info(
-          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing at normal speed.`,
+          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
         );
-        audioElement.playbackRate = 1;
+        audioElement.playbackRate = 0.995;
+      } else if (audioDiff < -0.01) {
+        console.info(
+          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly faster.`,
+        );
+        audioElement.playbackRate = 1.005;
+      } else {
+        if (audioElement.playbackRate !== 1) {
+          console.info(
+            `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing at normal speed.`,
+          );
+          audioElement.playbackRate = 1;
+        }
       }
     }
   }, 500);
-  setTimeout(() => {
-    clearInterval(syncInterval);
-    audioElement.playbackRate = 1;
-  }, 10 * 1000);
+  setTimeout(cancelSyncing, 10 * 1000);
 }
 
 export default {

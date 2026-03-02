@@ -89,35 +89,44 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
   const videoDiff = projectedVideoTime - mediaTimeSeconds;
   console.info(`Video '${entityId}' is ${formatDiff(videoDiff)}.`);
 
-  const syncInterval = setInterval(() => {
-    const currentVideoTime = videoElement.currentTime;
-    const now = performance.timeOrigin + performance.now();
+  const cancelSyncing = () => {
+    console.info(
+      `Stopping video sync for ${entityId}, playing at normal speed`,
+    );
+    clearInterval(syncInterval);
+    videoElement.removeEventListener("pause", cancelSyncing);
+    videoElement.playbackRate = 1;
+  };
+  videoElement.addEventListener("pause", cancelSyncing);
 
-    const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
-    const videoDiff = projectedVideoTime - mediaTimeSeconds;
-    if (videoDiff > 0.01) {
-      console.info(
-        `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly slower.`,
-      );
-      videoElement.playbackRate = 0.99;
-    } else if (videoDiff < -0.01) {
-      console.info(
-        `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly faster.`,
-      );
-      videoElement.playbackRate = 1.01;
-    } else {
-      if (videoElement.playbackRate !== 1) {
+  const syncInterval = setInterval(() => {
+    if (!videoElement.paused) {
+      const currentVideoTime = videoElement.currentTime;
+      const now = performance.timeOrigin + performance.now();
+
+      const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
+      const videoDiff = projectedVideoTime - mediaTimeSeconds;
+      if (videoDiff > 0.01) {
         console.info(
-          `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing at normal speed.`,
+          `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly slower.`,
         );
-        videoElement.playbackRate = 1;
+        videoElement.playbackRate = 0.99;
+      } else if (videoDiff < -0.01) {
+        console.info(
+          `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly faster.`,
+        );
+        videoElement.playbackRate = 1.01;
+      } else {
+        if (videoElement.playbackRate !== 1) {
+          console.info(
+            `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing at normal speed.`,
+          );
+          videoElement.playbackRate = 1;
+        }
       }
     }
   }, 500);
-  setTimeout(() => {
-    clearInterval(syncInterval);
-    videoElement.playbackRate = 1;
-  }, 10 * 1000);
+  setTimeout(cancelSyncing, 10 * 1000);
 }
 
 export default {
