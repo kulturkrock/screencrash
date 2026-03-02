@@ -50,13 +50,8 @@ function setupAudio(wrapper, message) {
   );
 }
 
-function play(entityIdOrWrapper, time) {
-  let wrapper;
-  if (typeof entityIdOrWrapper === "string") {
-    wrapper = document.getElementById(entityIdOrWrapper);
-  } else {
-    wrapper = entityIdOrWrapper;
-  }
+function play(entityId, time) {
+  const wrapper = document.getElementById(entityId);
   const audioElement = wrapper.getElementsByTagName("audio")[0];
 
   // Start a little earlier to account for delays in the browser.

@@ -44,13 +44,8 @@ function setupVideo(wrapper, message) {
   );
 }
 
-function play(entityIdOrWrapper, time) {
-  let wrapper;
-  if (typeof entityIdOrWrapper === "string") {
-    wrapper = document.getElementById(entityIdOrWrapper);
-  } else {
-    wrapper = entityIdOrWrapper;
-  }
+function play(entityId, time) {
+  const wrapper = document.getElementById(entityId);
   const videoElement = wrapper.getElementsByTagName("video")[0];
 
   util.doAtTime(time, () => {
