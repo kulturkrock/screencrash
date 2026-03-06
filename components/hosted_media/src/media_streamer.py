@@ -112,18 +112,18 @@ class MediaStreamer:
         self.jump_in_progress: _JumpInProgress | None = None
 
         # Setup files
-        self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.input_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now(tz=timezone.utc).isoformat()}-"
         )
         self.output_video_file_path = Path(self.temp_dir.name) / "out.webm"
         self.output_audio_file_path = Path(self.temp_dir.name) / "out.flac"
-        self.input_video_file = open(self.input_video_file_path, "rb")
+        self.input_file = open(self.input_file_path, "rb")
         self.output_video_file = open(self.output_video_file_path, "wb")
         self.output_audio_file = open(self.output_audio_file_path, "wb")
 
         # Setup containers
-        self.input_container = av.open(self.input_video_file, "r")
+        self.input_container = av.open(self.input_file, "r")
         self.output_video_container = av.open(
             self.output_video_file,
             "w",
@@ -184,7 +184,7 @@ class MediaStreamer:
         self.input_container.close()
         self.output_audio_container.close()
         self.output_video_container.close()
-        self.input_video_file.close()
+        self.input_file.close()
         self.output_video_file.close()
         self.output_audio_file.close()
         self.temp_dir.cleanup()
@@ -271,7 +271,7 @@ class MediaStreamer:
                     )
                     self._maybe_send_will_end_callback()
 
-            print(f"Finished encoding from {self.input_video_file_path.name}")
+            print(f"Finished encoding from {self.input_file_path.name}")
             self._close_containers()
             self.done = True
             self._maybe_send_will_end_callback()  # In case we haven't done it already
@@ -282,7 +282,7 @@ class MediaStreamer:
             await asyncio.sleep(
                 STREAM_DELAY + 1
             )  # Wait a bit to let any readers finish, just in case
-            print(f"Cleaning up {self.input_video_file_path.name}")
+            print(f"Cleaning up {self.input_file_path.name}")
             self._cleanup()
 
     async def _send_sync_events(self) -> None:
