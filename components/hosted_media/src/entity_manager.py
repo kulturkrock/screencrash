@@ -76,6 +76,48 @@ class Image:
 
 
 @dataclass
+class Audio:
+    entity_id: str
+    asset: str
+    display_name: str
+    muted: bool
+    volume: int
+    stream_id: str  # Different from entity ID so the browser doesn't cache the video
+    media_streamer: MediaStreamer
+
+    def get_create_message(self, fade: Fade | None = None) -> dict[str, Any]:
+        message = {
+            "command": "create",
+            "type": "audio",
+            "entityId": self.entity_id,
+            "streamId": self.stream_id,
+            "asset": "/".join(Path(self.asset).parts[1:]),
+            "muted": self.muted,
+            "volume": self.volume,
+        }
+        if fade is not None:
+            message["fadeIn"] = {
+                "from": fade.fade_from,
+                "to": fade.fade_to,
+                "time": fade.time,
+            }
+        return message
+
+    def get_state_for_core(self) -> dict[str, Any]:
+        return {
+            "effectType": "audio",
+            "name": self.display_name,
+            "muted": self.muted,
+            "volume": self.volume,
+            "duration": self.media_streamer.get_duration(),
+            "currentTime": self.media_streamer.get_position(),
+            "lastSync": time.time() * 1000,
+            "playing": self.media_streamer.is_playing(),
+            "looping": self.media_streamer.is_looping(),
+        }
+
+
+@dataclass
 class Video:
     entity_id: str
     asset: str
@@ -131,6 +173,7 @@ class Video:
             "viewport_height": self.height,
             "layer": self.layer,
             "muted": self.muted,
+            "volume": self.volume,
             "duration": self.media_streamer.get_duration(),
             "currentTime": self.media_streamer.get_position(),
             "lastSync": time.time() * 1000,
@@ -150,7 +193,7 @@ class EntityManager:
         ] = []
         self.delete_media_streamer_listeners: list[Callable[[str], None]] = []
         self.core_message_listeners: list[Callable[[dict[str, Any]]]] = []
-        self.entities: dict[str, Image | Video] = {}
+        self.entities: dict[str, Image | Audio | Video] = {}
 
     def _delete_entity(self, entity_id: str):
         self.broadcast_core_message(
@@ -230,7 +273,7 @@ class EntityManager:
                 layer=message.get("layer", 0),
                 visible=message.get("visible", False),
             )
-        elif type == "video":
+        elif type == "video" or type == "audio":
             if "fadeOut" in message:
                 fade_out_time = message["fadeOut"]
                 will_end_advance_warning = fade_out_time + CLIENT_PRECISE_ACTION_DELAY
@@ -282,23 +325,36 @@ class EntityManager:
             )
             for listener in self.create_media_streamer_listeners:
                 listener(stream_id, streamer)
-            new_entity = Video(
-                entity_id=entity_id,
-                asset=message["asset"],
-                display_name=message.get("displayName", message["asset"]),
-                x=message.get("x", 0),
-                y=message.get("y", 0),
-                width=message.get("width", None),
-                height=message.get("height", None),
-                use_percentage=message.get("usePercentage", False),
-                opacity=message.get("opacity", 1),
-                layer=message.get("layer", 0),
-                visible=message.get("visible", False),
-                muted=False,
-                volume=100,
-                stream_id=stream_id,
-                media_streamer=streamer,
-            )
+            if type == "video":
+                new_entity = Video(
+                    entity_id=entity_id,
+                    asset=message["asset"],
+                    display_name=message.get("displayName", message["asset"]),
+                    x=message.get("x", 0),
+                    y=message.get("y", 0),
+                    width=message.get("width", None),
+                    height=message.get("height", None),
+                    use_percentage=message.get("usePercentage", False),
+                    opacity=message.get("opacity", 1),
+                    layer=message.get("layer", 0),
+                    visible=message.get("visible", False),
+                    muted=False,
+                    volume=100,
+                    stream_id=stream_id,
+                    media_streamer=streamer,
+                )
+            elif type == "audio":
+                new_entity = Audio(
+                    entity_id=entity_id,
+                    asset=message["asset"],
+                    display_name=message.get("displayName", message["asset"]),
+                    muted=False,
+                    volume=100,
+                    stream_id=stream_id,
+                    media_streamer=streamer,
+                )
+            else:
+                raise RuntimeError(f"'{type}' is not 'audio' or 'video'")
         else:
             raise RuntimeError(f"Unsupported type {type}")
         if "fadeIn" in message:
@@ -325,18 +381,28 @@ class EntityManager:
         self._delete_entity(entity_id)
 
     def set_visible(self, entity_id: str, visible: bool) -> None:
+        entity = self.entities[entity_id]
+        if isinstance(entity, Audio):
+            raise RuntimeError(
+                f"Tried to set visible for {entity_id}, but it is not supported"
+            )
         self.broadcast_webpage_message(
             {"command": "setVisible", "entityId": entity_id, "visible": visible}
         )
-        self.entities[entity_id].visible = visible
-        self.broadcast_change_message(self.entities[entity_id])
+        entity.visible = visible
+        self.broadcast_change_message(entity)
 
     def set_opacity(self, entity_id: str, opacity: float) -> None:
+        entity = self.entities[entity_id]
+        if isinstance(entity, Audio):
+            raise RuntimeError(
+                f"Tried to set opacity for {entity_id}, but it is not supported"
+            )
         self.broadcast_webpage_message(
             {"command": "setOpacity", "entityId": entity_id, "opacity": opacity}
         )
-        self.entities[entity_id].opacity = opacity
-        self.broadcast_change_message(self.entities[entity_id])
+        entity.opacity = opacity
+        self.broadcast_change_message(entity)
 
     def set_viewport(
         self,
@@ -347,6 +413,11 @@ class EntityManager:
         height: int,
         use_percentage: bool,
     ) -> None:
+        entity = self.entities[entity_id]
+        if isinstance(entity, Audio):
+            raise RuntimeError(
+                f"Tried to set viewport for {entity_id}, but it is not supported"
+            )
         self.broadcast_webpage_message(
             {
                 "command": "setViewport",
@@ -358,7 +429,6 @@ class EntityManager:
                 "usePercentage": use_percentage,
             }
         )
-        entity = self.entities[entity_id]
         entity.x = x
         entity.y = y
         entity.width = width
@@ -367,11 +437,16 @@ class EntityManager:
         self.broadcast_change_message(entity)
 
     def set_layer(self, entity_id: str, layer: int) -> None:
+        entity = self.entities[entity_id]
+        if isinstance(entity, Audio):
+            raise RuntimeError(
+                f"Tried to set layer for {entity_id}, but it is not supported"
+            )
         self.broadcast_webpage_message(
             {"command": "setLayer", "entityId": entity_id, "layer": layer}
         )
-        self.entities[entity_id].layer = layer
-        self.broadcast_change_message(self.entities[entity_id])
+        entity.layer = layer
+        self.broadcast_change_message(entity)
 
     def _delete_at_time(self, entity_id: str, delete_time: datetime) -> None:
         asyncio.create_task(self._async_delete_at_time(entity_id, delete_time))
@@ -412,7 +487,7 @@ class EntityManager:
         fade_duration: float,
         destroy_on_end: bool,
     ) -> None:
-        also_fade_audio = isinstance(self.entities[entity_id], Video)
+        entity = self.entities[entity_id]
         self.broadcast_webpage_message(
             {
                 "command": "fade",
@@ -420,7 +495,6 @@ class EntityManager:
                 "to": fade_to,
                 "time": fade_duration,
                 "fadeStartTime": fade_start_time.isoformat(),
-                "alsoFadeAudio": also_fade_audio,
             }
         )
         delay = fade_start_time.timestamp() - time.time()
@@ -432,8 +506,11 @@ class EntityManager:
                 datetime.now(tz=timezone.utc) + timedelta(seconds=fade_duration + 1),
             )
         else:
-            self.entities[entity_id].opacity = fade_to
-            self.broadcast_change_message(self.entities[entity_id])
+            if isinstance(entity, Video) or isinstance(entity, Image):
+                entity.opacity = fade_to
+            if isinstance(entity, Video) or isinstance(entity, Audio):
+                entity.volume = round(100 * fade_to)
+            self.broadcast_change_message(entity)
 
     def fade(
         self,
@@ -442,7 +519,9 @@ class EntityManager:
         time: float,
         destroy_on_end: bool,
     ) -> None:
-        also_fade_audio = isinstance(self.entities[entity_id], Video)
+        entity = self.entities[entity_id]
+        fade_audio = isinstance(entity, Video) or isinstance(entity, Audio)
+        fade_video = isinstance(entity, Video) or isinstance(entity, Image)
         self.broadcast_webpage_message(
             {
                 "command": "fade",
@@ -450,7 +529,8 @@ class EntityManager:
                 "to": fade_to,
                 "time": time,
                 "fadeStartTime": None,
-                "alsoFadeAudio": also_fade_audio,
+                "fadeAudio": fade_audio,
+                "fadeVideo": fade_video,
             }
         )
         if destroy_on_end:
@@ -459,12 +539,16 @@ class EntityManager:
                 entity_id, datetime.now(tz=timezone.utc) + timedelta(seconds=time + 1)
             )
         else:
-            self.entities[entity_id].opacity = fade_to
-            self.broadcast_change_message(self.entities[entity_id])
+            if isinstance(entity, Video) or isinstance(entity, Image):
+                entity.opacity = fade_to
+            if isinstance(entity, Video) or isinstance(entity, Audio):
+                entity.volume = round(100 * fade_to)
+
+            self.broadcast_change_message(entity)
 
     def play(self, entity_id: str) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to play/resume {entity_id}, which does not support it"
             )
@@ -483,7 +567,7 @@ class EntityManager:
 
     def pause(self, entity_id: str) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(f"Tried to pause {entity_id}, which does not support it")
         clients_pause_time = datetime.now(tz=timezone.utc) + timedelta(
             seconds=CLIENT_PRECISE_ACTION_DELAY
@@ -501,7 +585,7 @@ class EntityManager:
 
     def seek(self, entity_id: str, position: float) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to set position in {entity_id}, which does not support it"
             )
@@ -510,7 +594,7 @@ class EntityManager:
 
     def toggle_mute(self, entity_id: str) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to toggle mute on {entity_id}, which does not support it"
             )
@@ -525,7 +609,7 @@ class EntityManager:
 
     def set_volume(self, entity_id: str, volume: int) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to set volume on {entity_id}, which does not support it"
             )
@@ -536,7 +620,7 @@ class EntityManager:
 
     def set_loops(self, entity_id: str, loops: int) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to set loops on {entity_id}, which does not support it"
             )
@@ -544,7 +628,7 @@ class EntityManager:
 
     def set_loop_times(self, entity_id: str, loop_start: str, loop_end: str) -> None:
         entity = self.entities[entity_id]
-        if not isinstance(entity, Video):
+        if isinstance(entity, Image):
             raise RuntimeError(
                 f"Tried to set loop times on {entity_id}, which does not support it"
             )
@@ -557,7 +641,7 @@ class EntityManager:
         return [e.get_create_message() for e in self.entities.values()]
 
     def broadcast_create_message(
-        self, entity: Image | Video, fade: Fade | None
+        self, entity: Image | Audio | Video, fade: Fade | None
     ) -> None:
         self.broadcast_webpage_message(entity.get_create_message(fade))
 
@@ -565,7 +649,7 @@ class EntityManager:
         for listener in self.webpage_message_listeners:
             listener(message)
 
-    def broadcast_change_message(self, entity: Image | Video) -> None:
+    def broadcast_change_message(self, entity: Image | Audio | Video) -> None:
         self.broadcast_core_message(
             {"messageType": "effect-changed", "entityId": entity.entity_id}
             | entity.get_state_for_core()

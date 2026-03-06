@@ -44,6 +44,12 @@ function setupVideo(wrapper, message) {
   );
 }
 
+function exists(entityId) {
+  const wrapper = document.getElementById(entityId);
+  const videoElements = wrapper.getElementsByTagName("video");
+  return videoElements.length > 0;
+}
+
 function play(entityId, time) {
   const wrapper = document.getElementById(entityId);
   const videoElement = wrapper.getElementsByTagName("video")[0];
@@ -133,6 +139,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
 
 export default {
   setupVideo,
+  exists,
   play,
   pause,
   syncTime,

@@ -50,6 +50,12 @@ function setupAudio(wrapper, message) {
   );
 }
 
+function exists(entityId) {
+  const wrapper = document.getElementById(entityId);
+  const audioElements = wrapper.getElementsByTagName("audio");
+  return audioElements.length > 0;
+}
+
 function play(entityId, time) {
   const wrapper = document.getElementById(entityId);
   const audioElement = wrapper.getElementsByTagName("audio")[0];
@@ -180,6 +186,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
 
 export default {
   setupAudio,
+  exists,
   play,
   pause,
   setMuted,

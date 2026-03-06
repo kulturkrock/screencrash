@@ -17,6 +17,8 @@ function subscribe() {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {
       wrappers.create(message, video.setupVideo, audio.setupAudio);
+    } else if (message.command === "create" && message.type === "audio") {
+      wrappers.create(message, audio.setupAudio);
     } else if (message.command === "setVisible") {
       wrappers.setVisible(message.entityId, message.visible);
     } else if (message.command === "setOpacity") {
@@ -39,7 +41,7 @@ function subscribe() {
         message.time,
         message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
       );
-      if (message.alsoFadeAudio) {
+      if (audio.exists(message.entityId)) {
         audio.fadeAudio(
           message.entityId,
           message.to,
@@ -48,19 +50,27 @@ function subscribe() {
         );
       }
     } else if (message.command === "play") {
-      video.play(message.entityId, Date.parse(message.time));
-      audio.play(message.entityId, Date.parse(message.time));
+      if (video.exists(message.entityId)) {
+        video.play(message.entityId, Date.parse(message.time));
+      }
+      if (audio.exists(message.entityId)) {
+        audio.play(message.entityId, Date.parse(message.time));
+      }
     } else if (message.command === "pause") {
-      video.pause(
-        message.entityId,
-        Date.parse(message.time),
-        message.pauseTimeInStream,
-      );
-      audio.pause(
-        message.entityId,
-        Date.parse(message.time),
-        message.pauseTimeInStream,
-      );
+      if (video.exists(message.entityId)) {
+        video.pause(
+          message.entityId,
+          Date.parse(message.time),
+          message.pauseTimeInStream,
+        );
+      }
+      if (audio.exists(message.entityId)) {
+        audio.pause(
+          message.entityId,
+          Date.parse(message.time),
+          message.pauseTimeInStream,
+        );
+      }
     } else if (message.command === "mute") {
       audio.setMuted(message.entityId, true);
     } else if (message.command === "unmute") {
@@ -68,16 +78,20 @@ function subscribe() {
     } else if (message.command === "setVolume") {
       audio.setVolume(message.entityId, message.volume);
     } else if (message.command === "syncTime") {
-      video.syncTime(
-        message.entityId,
-        Date.parse(message.playoutTime),
-        message.mediaTimeSeconds,
-      );
-      audio.syncTime(
-        message.entityId,
-        Date.parse(message.playoutTime),
-        message.mediaTimeSeconds,
-      );
+      if (video.exists(message.entityId)) {
+        video.syncTime(
+          message.entityId,
+          Date.parse(message.playoutTime),
+          message.mediaTimeSeconds,
+        );
+      }
+      if (audio.exists(message.entityId)) {
+        audio.syncTime(
+          message.entityId,
+          Date.parse(message.playoutTime),
+          message.mediaTimeSeconds,
+        );
+      }
     } else {
       console.error(
         `Unknown command '${message.command}' on type '${message.type}'`,
