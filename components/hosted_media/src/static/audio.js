@@ -38,7 +38,14 @@ function setupAudio(wrapper, message) {
   wrapper.appendChild(audioElement);
 
   audioElement.muted = message.muted;
-  audioElement.volume = message.volume / 100;
+  if (message.fadeIn) {
+    // For purposes of fade, volume is 0-1
+    audioElement.volume = message.fadeIn.from;
+    doFade(wrapper, message.fadeIn.to, message.fadeIn.time);
+  } else {
+    audioElement.volume = message.volume / 100;
+  }
+
   // Prevents audio popping when changing playbackSpeed to sync times.
   // But we need to keep playbackSpeed close to 1 or we will hear the change in pitch!
   audioElement.preservesPitch = false;
@@ -97,7 +104,6 @@ function fadeAudio(entityId, toVolume, duration, fadeStartTime) {
 }
 
 function doFade(wrapper, toVolume, duration) {
-  // Here toVolume is between 0 and 1, not 0 and 100
   const audioElement = wrapper.getElementsByTagName("audio")[0];
   const startingVolume = audioElement.volume;
   const stepTime = 50;
@@ -105,8 +111,11 @@ function doFade(wrapper, toVolume, duration) {
     (toVolume - startingVolume) / ((duration * 1000) / stepTime);
   const intervalId = setInterval(() => {
     const newVolume = audioElement.volume + volumeStep;
-    if (newVolume <= 0) {
-      audioElement.volume = 0;
+    if (newVolume <= toVolume && volumeStep < 0) {
+      audioElement.volume = toVolume;
+      clearInterval(intervalId);
+    } else if (newVolume >= toVolume && volumeStep >= 0) {
+      audioElement.volume = toVolume;
       clearInterval(intervalId);
     } else {
       audioElement.volume = newVolume;

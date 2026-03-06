@@ -232,8 +232,15 @@ class EntityManager:
         elif cmd == "layer":
             result = self.set_layer(entity_id, message["layer"])
         elif cmd == "fade":
+            # The volume of pure audio effects are given in 0-100 in the opus, but for our purposes fade is 0-1.
+            # This is because audio fade should work the same for video and audio effects.
+            target = (
+                message["target"] / 100
+                if message["type"] == "audio"
+                else message["target"]
+            )
             result = self.fade(
-                entity_id, message["target"], message["time"], message["stopOnDone"]
+                entity_id, target, message["time"], message["stopOnDone"]
             )
         elif cmd == "play":
             result = self.play(entity_id)
@@ -360,9 +367,21 @@ class EntityManager:
         else:
             raise RuntimeError(f"Unsupported type {type}")
         if "fadeIn" in message:
+            # The volume of pure audio effects are given in 0-100 in the opus, but for our purposes fade is 0-1.
+            # This is because audio fade should work the same for video and audio effects.
+            fade_from = (
+                message["fadeIn"]["from"] / 100
+                if message["type"] == "audio"
+                else message["fadeIn"]["from"]
+            )
+            fade_to = (
+                message["fadeIn"]["to"] / 100
+                if message["type"] == "audio"
+                else message["fadeIn"]["to"]
+            )
             fade = Fade(
-                fade_from=message["fadeIn"]["from"],
-                fade_to=message["fadeIn"]["to"],
+                fade_from=fade_from,
+                fade_to=fade_to,
                 time=message["fadeIn"]["time"],
             )
         else:
