@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import tempfile
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import typing
 import asyncio
 import time
@@ -117,7 +117,7 @@ class MediaStreamer:
         # Setup files
         self.input_video_file_path = asset_dir / "/".join(Path(asset).parts[1:])
         self.temp_dir = tempfile.TemporaryDirectory(
-            prefix=f"screencrash-video-{datetime.now().isoformat()}-"
+            prefix=f"screencrash-video-{datetime.now(tz=timezone.utc).isoformat()}-"
         )
         self.output_video_file_path = Path(self.temp_dir.name) / "out.webm"
         self.output_audio_file_path = Path(self.temp_dir.name) / "out.flac"
@@ -213,7 +213,7 @@ class MediaStreamer:
             if (
                 self.duration - self.latest_input_audio_timestamp
             ) / av.time_base + STREAM_DELAY < self.will_end_advance_warning:
-                will_end_at = datetime.now() + timedelta(
+                will_end_at = datetime.now(tz=timezone.utc) + timedelta(
                     seconds=(self.duration - self.latest_input_audio_timestamp)
                     / av.time_base
                     + STREAM_DELAY
@@ -221,7 +221,9 @@ class MediaStreamer:
                 self.will_end_callback(will_end_at)
                 self.sent_will_end_callback = True
         else:
-            will_end_at = datetime.now() + timedelta(seconds=STREAM_DELAY)
+            will_end_at = datetime.now(tz=timezone.utc) + timedelta(
+                seconds=STREAM_DELAY
+            )
             self.will_end_callback(will_end_at)
 
     def _encoded_enough_for_now(self) -> bool:
@@ -294,7 +296,8 @@ class MediaStreamer:
                 ) / av.time_base
                 playout_time = datetime.fromtimestamp(
                     self.play_pause_status.clients_start_time
-                    + encoded_seconds_since_unpause
+                    + encoded_seconds_since_unpause,
+                    tz=timezone.utc,
                 )
                 time_in_file = self.latest_output_audio_timestamp / av.time_base
                 print(
@@ -330,6 +333,7 @@ class MediaStreamer:
 
     def stop(self) -> None:
         self.stream_task.cancel()
+        self.sync_events_task.cancel()
         self.done = True
 
     def play(self, clients_play_time: datetime) -> None:

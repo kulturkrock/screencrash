@@ -108,12 +108,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
       const projectedVideoTime = currentVideoTime + (playoutTime - now) / 1000; // May be in the past
       const videoDiff = projectedVideoTime - mediaTimeSeconds;
 
-      if (Math.abs(videoDiff) > 0.2) {
-        console.info(
-          `Video '${entityId}' is ${formatDiff(videoDiff)}. Jumping to correct time.`,
-        );
-        videoElement.currentTime = mediaTimeSeconds;
-      } else if (videoDiff > 0.01) {
+      if (videoDiff > 0.01) {
         console.info(
           `Video '${entityId}' is ${formatDiff(videoDiff)}. Playing slightly slower.`,
         );

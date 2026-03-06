@@ -7,7 +7,7 @@ from media_streamer import MediaStreamer
 import asyncio
 import random
 import string
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 CLIENT_PRECISE_ACTION_DELAY = float(
@@ -428,7 +428,8 @@ class EntityManager:
         if destroy_on_end:
             # We wait one second longer than the fade should take, just to be sure it's done
             self._delete_at_time(
-                entity_id, datetime.now() + timedelta(seconds=fade_duration + 1)
+                entity_id,
+                datetime.now(tz=timezone.utc) + timedelta(seconds=fade_duration + 1),
             )
         else:
             self.entities[entity_id].opacity = fade_to
@@ -455,7 +456,7 @@ class EntityManager:
         if destroy_on_end:
             # We wait one second longer than the fade should take, just to be sure it's done
             self._delete_at_time(
-                entity_id, datetime.now() + timedelta(seconds=time + 1)
+                entity_id, datetime.now(tz=timezone.utc) + timedelta(seconds=time + 1)
             )
         else:
             self.entities[entity_id].opacity = fade_to
@@ -467,7 +468,7 @@ class EntityManager:
             raise RuntimeError(
                 f"Tried to play/resume {entity_id}, which does not support it"
             )
-        clients_play_time = datetime.now() + timedelta(
+        clients_play_time = datetime.now(tz=timezone.utc) + timedelta(
             seconds=CLIENT_PRECISE_ACTION_DELAY
         )
         self.broadcast_webpage_message(
@@ -484,7 +485,7 @@ class EntityManager:
         entity = self.entities[entity_id]
         if not isinstance(entity, Video):
             raise RuntimeError(f"Tried to pause {entity_id}, which does not support it")
-        clients_pause_time = datetime.now() + timedelta(
+        clients_pause_time = datetime.now(tz=timezone.utc) + timedelta(
             seconds=CLIENT_PRECISE_ACTION_DELAY
         )
         pause_time_in_stream = entity.media_streamer.pause(clients_pause_time)

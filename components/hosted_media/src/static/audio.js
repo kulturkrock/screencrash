@@ -152,12 +152,7 @@ function syncTime(entityId, playoutTime, mediaTimeSeconds) {
       const projectedAudioTime = currentAudioTime + (playoutTime - now) / 1000; // May be in the past
       const audioDiff = projectedAudioTime - mediaTimeSeconds;
 
-      if (Math.abs(audioDiff) > 0.2) {
-        console.info(
-          `Audio '${entityId}' is ${formatDiff(audioDiff)}. Jumping.`,
-        );
-        audioElement.currentTime = mediaTimeSeconds;
-      } else if (audioDiff > 0.01) {
+      if (audioDiff > 0.01) {
         console.info(
           `Audio '${entityId}' is ${formatDiff(audioDiff)}. Playing slightly slower.`,
         );
