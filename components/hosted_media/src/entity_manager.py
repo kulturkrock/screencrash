@@ -311,8 +311,10 @@ class EntityManager:
                 loop_end=message.get("loop_end", "end"),
                 loops=message.get("looping", 1),
                 start_at=message.get("start_at", 0),
-                effect_changed_callback=lambda: self.broadcast_change_message(
-                    self.entities[entity_id]
+                effect_changed_callback=lambda: (
+                    self.broadcast_change_message(self.entities[entity_id])
+                    if entity_id in self.entities
+                    else None
                 ),
                 will_end_advance_warning=will_end_advance_warning,
                 will_end_callback=will_end_callback,
