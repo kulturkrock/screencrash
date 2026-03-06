@@ -6,12 +6,17 @@ from datetime import datetime, timedelta, timezone
 import typing
 import asyncio
 import time
-import os
 import traceback
 
 import av
 import av.container
 
+from settings import (
+    STREAM_DELAY,
+    SYNC_CLIENTS,
+    SYNC_EVENT_INTERVAL,
+    TIME_BEFORE_FIRST_SYNC,
+)
 from av_utils import (
     convert_to_av_time_base,
     packet_fully_before_timestamp,
@@ -35,14 +40,6 @@ from util import assert_and_get_one
 # Open tmp_nokeyframes.mp4 in audacity, find very exact timestamps to loop
 # ffmpeg -i tmp_nokeyframes.mp4 -c:v vp9 -c:a copy -force_key_frames 00:00:01.212720,00:00:27.054200 output.mp4
 # (Replace the timestamps of -force_key_frames with your loop start times)
-
-STREAM_DELAY = float(os.environ.get("SCREENCRASH_HOSTED_MEDIA_STREAM_DELAY", "2"))
-SYNC_EVENT_INTERVAL = float(
-    os.environ.get("SCREENCRASH_HOSTED_MEDIA_SYNC_EVENT_INTERVAL", "30")
-)
-TIME_BEFORE_FIRST_SYNC = float(
-    os.environ.get("SCREENCRASH_HOSTED_MEDIA_TIME_BEFORE_FIRST_SYNC", "1")
-)
 
 
 def _parse_timestamp(timestamp: str) -> int:  # In av.time_base
@@ -170,7 +167,10 @@ class MediaStreamer:
 
         # Start encoding
         self.stream_task = asyncio.create_task(self._encode())
-        self.sync_events_task = asyncio.create_task(self._send_sync_events())
+        if SYNC_CLIENTS:
+            self.sync_events_task = asyncio.create_task(self._send_sync_events())
+        else:
+            self.sync_events_task = None
 
     def _close_containers(self) -> None:
         self.input_container.close()
@@ -178,7 +178,8 @@ class MediaStreamer:
         self.output_video_container.close()
 
     def _cleanup(self) -> None:
-        self.sync_events_task.cancel()
+        if self.sync_events_task:
+            self.sync_events_task.cancel()
         # Close everything again, in case _close_containers hasn't been called.
         self.input_container.close()
         self.output_audio_container.close()
@@ -333,7 +334,8 @@ class MediaStreamer:
 
     def stop(self) -> None:
         self.stream_task.cancel()
-        self.sync_events_task.cancel()
+        if self.sync_events_task:
+            self.sync_events_task.cancel()
         self.done = True
 
     def play(self, clients_play_time: datetime) -> None:
