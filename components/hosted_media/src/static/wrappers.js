@@ -29,6 +29,10 @@ function create(message, setupFunction, secondSetupFunction) {
   document.body.appendChild(wrapper);
 }
 
+function exists(entityId) {
+  return document.getElementById(entityId) !== null;
+}
+
 function destroy(entityId, time) {
   const wrapper = document.getElementById(entityId);
   util.doAtTime(time, () => {
@@ -127,6 +131,7 @@ function doFade(wrapper, fadeTo, time) {
 
 export default {
   create,
+  exists,
   destroy,
   setVisible,
   setOpacity,

@@ -25,7 +25,10 @@ class RequestHandler:
         self.media_streamers: dict[str, MediaStreamer] = {}
 
     async def redirect_to_static(self, request: web.Request):
-        return web.Response(status=302, headers={"location": "static/index.html"})
+        return web.Response(
+            status=302,
+            headers={"location": f"static/index.html?{request.query_string}"},
+        )
 
     def send_to_subscribers(self, message: dict[str, Any]):
         for resp in self.subscribe_responses:

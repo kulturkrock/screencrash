@@ -4,43 +4,74 @@ import audio from "./audio.js";
 import wrappers from "./wrappers.js";
 import domUtils from "./domUtils.js";
 
+const searchParams = new URLSearchParams(window.location.search);
+const noVideo = searchParams.has("noVideo");
+const noAudio = searchParams.has("noAudio");
+
 function subscribe() {
   const eventSource = new EventSource("../api/subscribe");
   eventSource.addEventListener("message", (event) => {
     const message = JSON.parse(event.data);
     if (message.command === "destroy") {
-      wrappers.destroy(
-        message.entityId,
-        message.time ? Date.parse(message.time) : null,
-      );
-    } else if (message.command === "create" && message.type === "image") {
+      if (wrappers.exists(message.entityId)) {
+        wrappers.destroy(
+          message.entityId,
+          message.time ? Date.parse(message.time) : null,
+        );
+      }
+    } else if (
+      message.command === "create" &&
+      message.type === "image" &&
+      !noVideo
+    ) {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {
-      wrappers.create(message, video.setupVideo, audio.setupAudio);
-    } else if (message.command === "create" && message.type === "audio") {
+      const setup = [];
+      if (!noVideo) {
+        setup.push(video.setupVideo);
+      }
+      if (!noAudio) {
+        setup.push(audio.setupAudio);
+      }
+      wrappers.create(message, ...setup);
+    } else if (
+      message.command === "create" &&
+      message.type === "audio" &&
+      !noAudio
+    ) {
       wrappers.create(message, audio.setupAudio);
     } else if (message.command === "setVisible") {
-      wrappers.setVisible(message.entityId, message.visible);
+      if (wrappers.exists(message.entityId)) {
+        wrappers.setVisible(message.entityId, message.visible);
+      }
     } else if (message.command === "setOpacity") {
-      wrappers.setOpacity(message.entityId, message.opacity);
+      if (wrappers.exists(message.entityId)) {
+        wrappers.setOpacity(message.entityId, message.opacity);
+      }
     } else if (message.command === "setViewport") {
-      wrappers.setViewport(
-        message.entityId,
-        message.x,
-        message.y,
-        message.width,
-        message.height,
-        message.usePercentage,
-      );
+      if (wrappers.exists(message.entityId)) {
+        wrappers.setViewport(
+          message.entityId,
+          message.x,
+          message.y,
+          message.width,
+          message.height,
+          message.usePercentage,
+        );
+      }
     } else if (message.command === "setLayer") {
-      wrappers.setLayer(message.entityId, message.layer);
+      if (wrappers.exists(message.entityId)) {
+        wrappers.setLayer(message.entityId, message.layer);
+      }
     } else if (message.command === "fade") {
-      wrappers.fade(
-        message.entityId,
-        message.to,
-        message.time,
-        message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
-      );
+      if (wrappers.exists(message.entityId)) {
+        wrappers.fade(
+          message.entityId,
+          message.to,
+          message.time,
+          message.fadeStartTime ? Date.parse(message.fadeStartTime) : null,
+        );
+      }
       if (audio.exists(message.entityId)) {
         audio.fadeAudio(
           message.entityId,
@@ -72,11 +103,17 @@ function subscribe() {
         );
       }
     } else if (message.command === "mute") {
-      audio.setMuted(message.entityId, true);
+      if (audio.exists(message.entityId)) {
+        audio.setMuted(message.entityId, true);
+      }
     } else if (message.command === "unmute") {
-      audio.setMuted(message.entityId, false);
+      if (audio.exists(message.entityId)) {
+        audio.setMuted(message.entityId, false);
+      }
     } else if (message.command === "setVolume") {
-      audio.setVolume(message.entityId, message.volume);
+      if (audio.exists(message.entityId)) {
+        audio.setVolume(message.entityId, message.volume);
+      }
     } else if (message.command === "syncTime") {
       if (video.exists(message.entityId)) {
         video.syncTime(
@@ -112,6 +149,7 @@ async function playAudioKeepalive() {
     document.body.appendChild(textElement);
   }
 }
-
-playAudioKeepalive();
+if (!noAudio) {
+  playAudioKeepalive();
+}
 subscribe();
