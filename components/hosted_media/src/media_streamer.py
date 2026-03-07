@@ -7,6 +7,7 @@ import typing
 import asyncio
 import time
 import traceback
+import io
 
 import av
 import av.container
@@ -76,6 +77,21 @@ class _JumpInProgress:
     partial_loop_end_packet: av.Packet
 
 
+@dataclass
+class _VideoOutput:
+    file_path: Path
+    file_handle: io.BufferedWriter
+    container: av.container.OutputContainer
+
+
+@dataclass
+class _AudioOutput:
+    file_path: Path
+    file_handle: io.BufferedWriter
+    container: av.container.OutputContainer
+    stream: av.AudioStream
+
+
 class MediaStreamer:
 
     def __init__(
@@ -111,39 +127,52 @@ class MediaStreamer:
         )  # loops=0 means "forever" in the opus, but we use None for that here
         self.jump_in_progress: _JumpInProgress | None = None
 
-        # Setup files
+        # Setup files and containers
         self.input_file_path = asset_dir / "/".join(Path(asset).parts[1:])
+        self.input_file = open(self.input_file_path, "rb")
+        self.input_container = av.open(self.input_file, "r")
+
         self.temp_dir = tempfile.TemporaryDirectory(
             prefix=f"screencrash-video-{datetime.now(tz=timezone.utc).isoformat()}-"
         )
-        self.output_video_file_path = Path(self.temp_dir.name) / "out.webm"
-        self.output_audio_file_path = Path(self.temp_dir.name) / "out.flac"
-        self.input_file = open(self.input_file_path, "rb")
-        self.output_video_file = open(self.output_video_file_path, "wb")
-        self.output_audio_file = open(self.output_audio_file_path, "wb")
+        if True:
+            out_video_path = Path(self.temp_dir.name) / "video.webm"
+            out_video_file_handle = open(out_video_path, "wb")
+            out_video_container = av.open(
+                out_video_file_handle,
+                "w",
+                format="webm",
+                options={"live": "1"},
+            )
+            out_video_container.add_stream_from_template(
+                self.input_container.streams.video[0]
+            )
+            self.video_output = _VideoOutput(
+                file_path=out_video_path,
+                file_handle=out_video_file_handle,
+                container=out_video_container,
+            )
+        if True:
+            out_audio_path = Path(self.temp_dir.name) / "audio.webm"
+            out_audio_file_handle = open(out_audio_path, "wb")
+            out_audio_container = av.open(
+                out_audio_file_handle,
+                "w",
+                format="webm",
+                options={"live": "1"},
+            )
+            out_audio_stream = out_audio_container.add_stream("libopus")
+            self.audio_output = _AudioOutput(
+                file_path=out_audio_path,
+                file_handle=out_audio_file_handle,
+                container=out_audio_container,
+                stream=out_audio_stream,
+            )
 
-        # Setup containers
-        self.input_container = av.open(self.input_file, "r")
-        self.output_video_container = av.open(
-            self.output_video_file,
-            "w",
-            format="webm",
-            options={"live": "1"},
-        )
-        self.output_audio_container = av.open(
-            self.output_audio_file,
-            "w",
-            format="webm",
-            options={"live": "1"},
-        )
         if len(self.input_container.streams.video) != 1:
             raise RuntimeError(
                 f"Expected 1 video stream, found {len(self.input_container.streams.video)}"
             )
-        self.output_video_container.add_stream_from_template(
-            self.input_container.streams.video[0]
-        )
-        self.out_audio_stream = self.output_audio_container.add_stream("libopus")
 
         # Setup misc
         if self.input_container.duration is None:
@@ -174,19 +203,17 @@ class MediaStreamer:
 
     def _close_containers(self) -> None:
         self.input_container.close()
-        self.output_audio_container.close()
-        self.output_video_container.close()
+        self.audio_output.container.close()
+        self.video_output.container.close()
 
     def _cleanup(self) -> None:
         if self.sync_events_task:
             self.sync_events_task.cancel()
-        # Close everything again, in case _close_containers hasn't been called.
-        self.input_container.close()
-        self.output_audio_container.close()
-        self.output_video_container.close()
+        # In case _close_containers hasn't already been called.
+        self._close_containers()
         self.input_file.close()
-        self.output_video_file.close()
-        self.output_audio_file.close()
+        self.video_output.file_handle.close()
+        self.audio_output.file_handle.close()
         self.temp_dir.cleanup()
 
     def _broadcast_change(self) -> None:
@@ -199,13 +226,11 @@ class MediaStreamer:
     def _handle_packet(
         self,
         packet: av.Packet,
-        output_video_container: av.container.OutputContainer,
-        output_audio_container: av.container.OutputContainer,
     ):
         if packet.stream.type == "video":
-            self._handle_video_packet(packet, output_video_container)
+            self._handle_video_packet(packet, self.video_output.container)
         elif packet.stream.type == "audio":
-            self._handle_audio_packet(packet, output_audio_container)
+            self._handle_audio_packet(packet, self.audio_output.container)
 
     def _maybe_send_will_end_callback(self) -> None:
         if self.sent_will_end_callback:
@@ -266,9 +291,7 @@ class MediaStreamer:
                             # Else, stop encoding
                             break
 
-                    self._handle_packet(
-                        packet, self.output_video_container, self.output_audio_container
-                    )
+                    self._handle_packet(packet)
                     self._maybe_send_will_end_callback()
 
             print(f"Finished encoding from {self.input_file_path.name}")
@@ -374,9 +397,9 @@ class MediaStreamer:
 
     def get_output_file(self, stream_type: typing.Literal["audio", "video"]) -> Path:
         if stream_type == "video":
-            return self.output_video_file_path
+            return self.video_output.file_path
         else:
-            return self.output_audio_file_path
+            return self.audio_output.file_path
 
     def _decrease_loops_left(self):
         if self.loops_left is not None:
@@ -443,7 +466,7 @@ class MediaStreamer:
 
             self.jump_in_progress = None
 
-            out_packets = self.out_audio_stream.encode(frame)
+            out_packets = self.audio_output.stream.encode(frame)
 
             for out_packet in out_packets:
                 if (
@@ -490,7 +513,7 @@ class MediaStreamer:
 
             frame = typing.cast(av.AudioFrame, assert_and_get_one(packet.decode()))
 
-            out_packets = self.out_audio_stream.encode(frame)
+            out_packets = self.audio_output.stream.encode(frame)
 
             for out_packet in out_packets:
                 if (
