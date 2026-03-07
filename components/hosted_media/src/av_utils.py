@@ -45,8 +45,9 @@ def stitch_audio_frames(
     first_frame_end_time: int,  # In av.time_base
     second_frame_start_time: int,  # In av.time_base
 ) -> av.AudioFrame:
+    layout = first_frame.layout
     # First, resample the frames to get the left and right channels separately instead of interleaved
-    planar_resampler = av.audio.resampler.AudioResampler("s32p", "stereo")
+    planar_resampler = av.audio.resampler.AudioResampler("s32p", layout)
 
     first_frame = assert_and_get_one(planar_resampler.resample(first_frame))
     assert first_frame.pts is not None
@@ -105,6 +106,7 @@ def stitch_audio_frames(
     stitched_frame = av.AudioFrame.from_ndarray(
         stitched_array,  # pyright: ignore -- We know it's a supported dtype since we got it from another frame
         format=first_frame.format.name,
+        layout=layout,
     )
     # pts will be overwritten as the function is used at time of writing, but just to be safe
     stitched_frame.pts = first_frame.pts
@@ -112,7 +114,7 @@ def stitch_audio_frames(
     stitched_frame.time_base = first_frame.time_base
 
     # Last, resample the frame back to interleaved format
-    interleaved_resampler = av.audio.resampler.AudioResampler("s32", "stereo")
+    interleaved_resampler = av.audio.resampler.AudioResampler("s32", layout)
     frame = assert_and_get_one(interleaved_resampler.resample(stitched_frame))
 
     return frame
