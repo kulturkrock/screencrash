@@ -640,6 +640,7 @@ class EntityManager:
         self.broadcast_webpage_message(
             {"command": "setVolume", "entityId": entity_id, "volume": volume}
         )
+        self.broadcast_change_message(entity)
 
     def set_loops(self, entity_id: str, loops: int) -> None:
         entity = self.entities[entity_id]
