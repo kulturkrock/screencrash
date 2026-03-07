@@ -27,10 +27,10 @@ function subscribe() {
       wrappers.create(message, images.setupImage);
     } else if (message.command === "create" && message.type === "video") {
       const setup = [];
-      if (!noVideo) {
+      if (!noVideo && message.hasVideo) {
         setup.push(video.setupVideo);
       }
-      if (!noAudio) {
+      if (!noAudio && message.hasAudio) {
         setup.push(audio.setupAudio);
       }
       wrappers.create(message, ...setup);

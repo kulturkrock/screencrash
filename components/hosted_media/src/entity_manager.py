@@ -152,6 +152,8 @@ class Video:
             "visible": self.visible,
             "muted": self.muted,
             "volume": self.volume,
+            "hasVideo": self.media_streamer.has_video(),
+            "hasAudio": self.media_streamer.has_audio(),
         }
         if fade is not None:
             message["fadeIn"] = {

@@ -191,12 +191,13 @@ class MediaStreamer:
         self.next_video_timestamp: int = 0
         self.next_audio_timestamp: int = 0
         self.waiting_for_video_keyframe = False
-        # This is the latest read audio timestamp in the input file.
+        # This is the latest read audio timestamp in the input file (or video timestamp if there is no audio).
         # If you seek to an earlier point, it will decrease. In av.time_base.
-        self.latest_input_audio_timestamp: int = 0
-        # This is the latest written audio timestamp in the output file.
+        self.latest_input_timestamp: int = 0
+        # This is the latest written audio timestamp in the output file (or video timestamp if there is no audio).
         # It will increase mostly monotonically. In av.time_base
-        self.latest_output_audio_timestamp: int = 0
+        # WARNING: Not exact if we only have video
+        self.latest_output_timestamp: int = 0
         self.done = False
 
         self._seek(round(start_at * av.time_base))
@@ -232,7 +233,7 @@ class MediaStreamer:
 
     def _seek(self, position_in_av_time_base: int) -> None:
         self.input_container.seek(position_in_av_time_base)
-        self.latest_input_audio_timestamp = position_in_av_time_base  # So we can broadcast changes immediately and get correct data
+        self.latest_input_timestamp = position_in_av_time_base  # So we can broadcast changes immediately and get correct data
 
     def _handle_packet(
         self,
@@ -252,11 +253,10 @@ class MediaStreamer:
             return
         if not self.done:
             if (
-                self.duration - self.latest_input_audio_timestamp
+                self.duration - self.latest_input_timestamp
             ) / av.time_base + STREAM_DELAY < self.will_end_advance_warning:
                 will_end_at = datetime.now(tz=timezone.utc) + timedelta(
-                    seconds=(self.duration - self.latest_input_audio_timestamp)
-                    / av.time_base
+                    seconds=(self.duration - self.latest_input_timestamp) / av.time_base
                     + STREAM_DELAY
                 )
                 self.will_end_callback(will_end_at)
@@ -274,13 +274,13 @@ class MediaStreamer:
             )
 
             encoded_time_since_unpause = (
-                self.latest_output_audio_timestamp
+                self.latest_output_timestamp
                 - self.play_pause_status.start_time_in_stream
             ) / av.time_base
             return encoded_time_since_unpause - played_time_since_unpause > STREAM_DELAY
         else:
             encoded_after_pause = (
-                self.latest_output_audio_timestamp
+                self.latest_output_timestamp
                 - self.play_pause_status.pause_time_in_stream
             ) / av.time_base
             return encoded_after_pause > STREAM_DELAY
@@ -330,7 +330,7 @@ class MediaStreamer:
         while True:
             if isinstance(self.play_pause_status, _Playing):
                 encoded_seconds_since_unpause = (
-                    self.latest_output_audio_timestamp
+                    self.latest_output_timestamp
                     - self.play_pause_status.start_time_in_stream
                 ) / av.time_base
                 playout_time = datetime.fromtimestamp(
@@ -338,9 +338,9 @@ class MediaStreamer:
                     + encoded_seconds_since_unpause,
                     tz=timezone.utc,
                 )
-                time_in_file = self.latest_output_audio_timestamp / av.time_base
+                time_in_file = self.latest_output_timestamp / av.time_base
                 print(
-                    f"playout: {playout_time}, infile: {time_in_file:5f}, latest: {self.latest_output_audio_timestamp}"
+                    f"playout: {playout_time}, infile: {time_in_file:5f}, latest: {self.latest_output_timestamp}"
                 )
                 self.sync_event_callback(playout_time, time_in_file)
             await asyncio.sleep(SYNC_EVENT_INTERVAL)
@@ -362,7 +362,7 @@ class MediaStreamer:
         # - It matches the position you seek to from the UI
         # - It tells you whether you can break out of a vamp loop
         # - It doesn't tell you a position before the loop when you've just jumped
-        return self.latest_input_audio_timestamp / av.time_base
+        return self.latest_input_timestamp / av.time_base
 
     def is_playing(self) -> bool:
         return isinstance(self.play_pause_status, _Playing)
@@ -407,6 +407,12 @@ class MediaStreamer:
         else:
             return "audio/webm"
 
+    def has_video(self) -> bool:
+        return self.video_output is not None
+
+    def has_audio(self) -> bool:
+        return self.audio_output is not None
+
     def is_done(self) -> bool:
         return self.done
 
@@ -442,9 +448,17 @@ class MediaStreamer:
             # Or possibly drop, if haven't seen a keyframe after jumping.
             # Either way, update the next timestamp
             assert packet.duration is not None  # Not a dummy packet
+            if self.audio_output is None:
+                self.latest_input_timestamp = convert_to_av_time_base(
+                    packet.pts, packet.time_base, exact=False
+                )
             packet.pts = self.next_video_timestamp
             packet.dts = packet.pts
             self.next_video_timestamp += packet.duration
+            if self.audio_output is None:
+                self.latest_output_timestamp = convert_to_av_time_base(
+                    packet.pts, packet.time_base, exact=False
+                )
             if self.waiting_for_video_keyframe and packet.is_keyframe:
                 self.waiting_for_video_keyframe = False
             if not self.waiting_for_video_keyframe:
@@ -495,12 +509,12 @@ class MediaStreamer:
                     out_packet.duration is not None
                 ):  # If it's a dummy packet somehow, just send it
                     assert out_packet.pts is not None
-                    self.latest_input_audio_timestamp = convert_to_av_time_base(
+                    self.latest_input_timestamp = convert_to_av_time_base(
                         packet.pts, packet.time_base
                     )
                     out_packet.pts = self.next_audio_timestamp
                     out_packet.dts = out_packet.pts
-                    self.latest_output_audio_timestamp = convert_to_av_time_base(
+                    self.latest_output_timestamp = convert_to_av_time_base(
                         out_packet.pts, out_packet.time_base
                     )
                     self.next_audio_timestamp += out_packet.duration
@@ -543,12 +557,12 @@ class MediaStreamer:
                     out_packet.duration is not None
                 ):  # If it's a dummy packet somehow, just send it
                     assert out_packet.pts is not None
-                    self.latest_input_audio_timestamp = convert_to_av_time_base(
+                    self.latest_input_timestamp = convert_to_av_time_base(
                         packet.pts, packet.time_base
                     )
                     out_packet.pts = self.next_audio_timestamp
                     out_packet.dts = out_packet.pts
-                    self.latest_output_audio_timestamp = convert_to_av_time_base(
+                    self.latest_output_timestamp = convert_to_av_time_base(
                         out_packet.pts, out_packet.time_base
                     )
                     self.next_audio_timestamp += out_packet.duration

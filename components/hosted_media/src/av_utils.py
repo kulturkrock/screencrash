@@ -9,7 +9,9 @@ import numpy
 from util import assert_and_get_one
 
 
-def convert_to_av_time_base(time: int, from_time_base: Fraction) -> int:
+def convert_to_av_time_base(
+    time: int, from_time_base: Fraction, exact: bool = True
+) -> int:
 
     # This looks off, but remember: from_time_base is of the form 1/x and av.time_base is of the form x
     converted_time = time * from_time_base * av.time_base
@@ -17,9 +19,12 @@ def convert_to_av_time_base(time: int, from_time_base: Fraction) -> int:
     if converted_time.is_integer():
         return converted_time.numerator
     else:
-        raise RuntimeError(
-            f"Cannot convert from time base {from_time_base} to av.time_base"
-        )
+        if exact:
+            raise RuntimeError(
+                f"Cannot convert from time base {from_time_base} to av.time_base"
+            )
+        else:
+            return round(float(converted_time))
 
 
 def packet_fully_before_timestamp(
