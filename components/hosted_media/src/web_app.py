@@ -53,6 +53,9 @@ class RequestHandler:
             streamer = self.media_streamers[stream_id]
         except KeyError:
             return web.Response(status=404)
+        output_file_path = streamer.get_output_file(stream_type)
+        if output_file_path is None:
+            return web.Response(status=400)
         response = web.StreamResponse(
             headers={
                 "Content-Type": streamer.get_mimetype(stream_type),
@@ -61,7 +64,7 @@ class RequestHandler:
         try:
             await response.prepare(request)
 
-            async with aiofiles.open(streamer.get_output_file(stream_type), "rb") as f:
+            async with aiofiles.open(output_file_path, "rb") as f:
                 while True:
                     chunk = await f.read(1_000_000)
                     if len(chunk) > 0:
