@@ -25,16 +25,16 @@ from av_utils import (
 )
 from util import assert_and_get_one
 
-# This makes some assumptions about the video file:
+# This makes some assumptions about the media file:
 # 1. The packets are ordered with nondecreasing timestamps, even across streams
 # 2. There is a keyframe after the start of each looping portion, soon enough that
-#    video frames can be dropped until then
-# 3. The video codec is allowed in webm
-# 4. Audio packets have only one audio frame
-# 5. The audio codec does not use keyframes
-# 6. The audio codec is lossless (or at least FFmpeg's decoder does not have state)
+#    video frames can be dropped until then (if we want to vamp and the file has video)
+# 3. The video codec is allowed in webm (if the file has video)
+# 4. Audio packets have only one audio frame (if the file has audio)
+# 5. The audio codec does not use keyframes (if the file has audio)
+# 6. The audio codec is lossless, or at least FFmpeg's decoder does not have state (if the file has audio)
 # 7. 1 000 000 can be divided by the audio sample rate with no remainder
-# 8. Both the audio and video stream start at time 0
+# 8. Both the audio and video stream start at time 0 (if they exist)
 #
 # You can create a file that matches this by:
 # ffmpeg -i input.mp4 -c:v vp9 -c:a flac tmp_nokeyframes.mp4
