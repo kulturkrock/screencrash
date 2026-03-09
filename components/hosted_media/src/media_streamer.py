@@ -404,11 +404,13 @@ class MediaStreamer:
         # for STREAM_DELAY seconds before the part we seeked to is shown.
         # Reset self.play_pause_status so we immediately get STREAM_DELAY seconds ahead
         # again.
-        if isinstance(self.play_pause_status, _Playing):
-            self.play_pause_status = _Playing(
-                clients_start_time=client_time.timestamp(),
-                start_time_in_stream=self.latest_output_timestamp,
-            )
+        if not (self.has_audio() and self.has_video()):
+            # Disabled for now if we have both audio and video. This would cause them to go out of sync
+            if isinstance(self.play_pause_status, _Playing):
+                self.play_pause_status = _Playing(
+                    clients_start_time=client_time.timestamp(),
+                    start_time_in_stream=self.latest_output_timestamp,
+                )
         return self.latest_output_timestamp / av.time_base
 
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:

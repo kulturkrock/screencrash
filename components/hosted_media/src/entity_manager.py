@@ -616,14 +616,18 @@ class EntityManager:
             seconds=CLIENT_PRECISE_ACTION_DELAY
         )
         position_in_stream = entity.media_streamer.seek(position, client_time)
-        self.broadcast_webpage_message(
-            {
-                "command": "seek",
-                "entityId": entity_id,
-                "time": client_time.isoformat(),
-                "seekTo": position_in_stream,
-            }
-        )
+        if not (
+            entity.media_streamer.has_audio() and entity.media_streamer.has_video()
+        ):
+            # Disabled for now if we have both audio and video. This would cause them to go out of sync
+            self.broadcast_webpage_message(
+                {
+                    "command": "seek",
+                    "entityId": entity_id,
+                    "time": client_time.isoformat(),
+                    "seekTo": position_in_stream,
+                }
+            )
         self.broadcast_change_message(entity)
 
     def toggle_mute(self, entity_id: str) -> None:
