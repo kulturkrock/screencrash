@@ -454,7 +454,7 @@
                         },
                         "loop_end": {
                             "title": "End time",
-                            "description": "Loop end timestamp on the form HH:mm:ss.xxxxxx",
+                            "description": "Loop end timestamp on the form HH:mm:ss.xxxxxx, or 'end' for clip end.",
                             "type": "string"
                         }
                     },
