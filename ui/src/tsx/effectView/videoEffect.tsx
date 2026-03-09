@@ -44,7 +44,7 @@ class VideoEffect extends React.PureComponent<IProps, IState> {
         <div className={style.videoInfo}>
           <div className={style.videoName}>{this.props.effect.name}</div>
           <div
-            className={`${style.videoAction} ${style.videoMute} ${style.temporarilyDisabled}`}
+            className={`${style.videoAction} ${style.videoMute}`}
             onClick={this.sendToggleMute.bind(this)}
           >
             {this.getMuteButton()}

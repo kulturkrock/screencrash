@@ -77,20 +77,20 @@ class ProgressBar extends React.PureComponent<IProps, IState> {
         newTime = Math.min(newTime, this.props.duration);
       }
 
-      this.setState({
-        ...this.state,
+      this.setState((prevState) => ({
+        ...prevState,
         lastUpdated: now,
         currentTime: newTime,
-      });
+      }));
     } else {
       if (hasUpdateFromBackend) {
-        this.setState({
-          ...this.state,
+        this.setState((prevState) => ({
+          ...prevState,
           lastUpdated: now,
           currentTime: currentTime,
-        });
+        }));
       } else {
-        this.setState({ ...this.state, lastUpdated: now });
+        this.setState((prevState) => ({ ...prevState, lastUpdated: now }));
       }
     }
   }
@@ -112,21 +112,21 @@ class ProgressBar extends React.PureComponent<IProps, IState> {
   }
 
   public onMouseOver(): void {
-    this.setState({ ...this.state, showMarker: true });
+    this.setState((prevState) => ({ ...prevState, showMarker: true }));
   }
 
   public onMouseOut(): void {
-    this.setState({ ...this.state, showMarker: false });
+    this.setState((prevState) => ({ ...prevState, showMarker: false }));
   }
 
   public onMouseMove(event: React.MouseEvent<HTMLElement>): void {
     const { x, width } = event.currentTarget.getBoundingClientRect();
     const elementX = event.clientX - x;
     const time = this.props.duration * (elementX / width);
-    this.setState({
-      ...this.state,
+    this.setState((prevState) => ({
+      ...prevState,
       markerTime: time,
-    });
+    }));
   }
 
   public onClick(): void {
