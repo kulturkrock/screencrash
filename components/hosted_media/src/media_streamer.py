@@ -398,8 +398,18 @@ class MediaStreamer:
         self.play_pause_status = _Paused(pause_time_in_stream=pause_time_in_stream)
         return pause_time_in_stream / av.time_base
 
-    def seek(self, position: float) -> None:
+    def seek(self, position: float, client_time: datetime) -> float:
         self._seek(round(position * av.time_base))
+        # Client will skip to the end of what we have encoded, so we don't need to wait
+        # for STREAM_DELAY seconds before the part we seeked to is shown.
+        # Reset self.play_pause_status so we immediately get STREAM_DELAY seconds ahead
+        # again.
+        if isinstance(self.play_pause_status, _Playing):
+            self.play_pause_status = _Playing(
+                clients_start_time=client_time.timestamp(),
+                start_time_in_stream=self.latest_output_timestamp,
+            )
+        return self.latest_output_timestamp / av.time_base
 
     def get_mimetype(self, stream_type: typing.Literal["audio", "video"]) -> str:
         if stream_type == "video":

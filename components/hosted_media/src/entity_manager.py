@@ -612,7 +612,18 @@ class EntityManager:
             raise RuntimeError(
                 f"Tried to set position in {entity_id}, which does not support it"
             )
-        entity.media_streamer.seek(position)
+        client_time = datetime.now(tz=timezone.utc) + timedelta(
+            seconds=CLIENT_PRECISE_ACTION_DELAY
+        )
+        position_in_stream = entity.media_streamer.seek(position, client_time)
+        self.broadcast_webpage_message(
+            {
+                "command": "seek",
+                "entityId": entity_id,
+                "time": client_time.isoformat(),
+                "seekTo": position_in_stream,
+            }
+        )
         self.broadcast_change_message(entity)
 
     def toggle_mute(self, entity_id: str) -> None:

@@ -84,6 +84,15 @@ function pause(entityId, time, pauseTimeInStream) {
   });
 }
 
+function seek(entityId, time, seekTo) {
+  const wrapper = document.getElementById(entityId);
+  const audioElement = wrapper.getElementsByTagName("audio")[0];
+
+  util.doAtTime(time, () => {
+    audioElement.currentTime = seekTo;
+  });
+}
+
 function setMuted(entityId, muted) {
   const wrapper = document.getElementById(entityId);
   const audioElement = wrapper.getElementsByTagName("audio")[0];
@@ -198,6 +207,7 @@ export default {
   exists,
   play,
   pause,
+  seek,
   setMuted,
   setVolume,
   fadeAudio,

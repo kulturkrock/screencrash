@@ -102,6 +102,13 @@ function subscribe() {
           message.pauseTimeInStream,
         );
       }
+    } else if (message.command === "seek") {
+      if (video.exists(message.entityId)) {
+        video.seek(message.entityId, Date.parse(message.time), message.seekTo);
+      }
+      if (audio.exists(message.entityId)) {
+        audio.seek(message.entityId, Date.parse(message.time), message.seekTo);
+      }
     } else if (message.command === "mute") {
       if (audio.exists(message.entityId)) {
         audio.setMuted(message.entityId, true);

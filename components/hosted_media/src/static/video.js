@@ -69,6 +69,15 @@ function pause(entityId, time, pauseTimeInStream) {
   });
 }
 
+function seek(entityId, time, seekTo) {
+  const wrapper = document.getElementById(entityId);
+  const videoElement = wrapper.getElementsByTagName("video")[0];
+
+  util.doAtTime(time, () => {
+    videoElement.currentTime = seekTo;
+  });
+}
+
 function formatDiff(diff) {
   const diffInMs = Math.round(diff * 1000);
   if (diffInMs >= 0) {
@@ -142,5 +151,6 @@ export default {
   exists,
   play,
   pause,
+  seek,
   syncTime,
 };
