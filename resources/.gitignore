@@ -1,4 +1,5 @@
+# Ignore everything here except the Makefile
 *
-
 !.gitignore
-!real_opus.yaml
+!Makefile
+!README.md

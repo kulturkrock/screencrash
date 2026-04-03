@@ -55,6 +55,7 @@ def convert_video(id: Id, filename: Path, outdir: Path, fadein: float, fadeout: 
     cmd += ["-map", "0:v", "-c:v", "libvpx-vp9"]
     if not silent:
         cmd += ["-map", "0:a", "-c:a", "libopus"]
+        cmd += ["-ac", "6"]  # use 6 audio channels (5.1 surround)
     cmd += ["-auto-alt-ref", "0", "-shortest", str(outfile)]
     try:
         print("#", " ".join(repr(c) if ' ' in c else c for c in cmd))
