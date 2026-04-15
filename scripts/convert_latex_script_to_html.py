@@ -123,7 +123,7 @@ def print_stylesheet():
 def print_header():
     if DATA.html:
         print('<!DOCTYPE html>')
-        print('<html><head><style>')
+        print('<html><head><meta charset="utf-8"><style>')
         print_stylesheet()
         print('</style></head>')
         print('<body>')
