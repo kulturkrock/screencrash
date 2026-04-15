@@ -45,7 +45,9 @@ body { font-family: Palatino, "PT Serif", serif }
 # LaTeX commands
 
 IGNORE_NODES = set('''
-    vspace title author date maketitle thispagestyle newpage tableofcontents TODO
+    kommentar TODO
+    vspace vspace* title author date maketitle thispagestyle newpage
+    tableofcontents makeatletter makeatother setlength
 '''.split())
 
 MODIFIERS = {
@@ -60,30 +62,32 @@ MODIFIERS = {
     'rentext': 'rentext',
 }
 
-SUFFIX_INVISIBLE = {
-    'in*': '',
-    'ut*': '',
-    'sub': '',
-    'subslut': '',
+ROLE_INVISIBLE = {
+    '=in*': '',
+    '=ut*': '',
+    '=sub': '',
+    '=subslut': '',
+    'aktivera=': '',
+    'deaktivera=': '',
 }
 
-SUFFIX_CLASSES = {
-    'sj': 'sjunger',
-    'gr': 'regi',
-    'in': 'regi',
-    'ut': 'regi',
+ROLE_CLASSES = {
+    '=sj': 'sjunger',
+    '=gr': 'regi',
+    '=in': 'regi',
+    '=ut': 'regi',
 }
 
-SUFFIX_TEXTS = {
-    'in': lambda p: f'{p} kommer in på scen.',
-    'ut': lambda p: f'{p} går av scen.',
+ROLE_TEXTS = {
+    '=in': lambda p: f'{p} kommer in på scen.',
+    '=ut': lambda p: f'{p} går av scen.',
 }
 
 
 ###############################################################################
 # Color names
 
-DVIPS_COLORS = {
+DEFINED_COLORS = {
     'apricot': '#fbb982', 'aquamarine': '#00b5be', 'bittersweet': '#c04f17', 'black': '#221e1f',
     'blue': '#2d2f92', 'bluegreen': '#00b3b8', 'blueviolet': '#473992', 'brickred': '#b6321c',
     'brown': '#792500', 'burntorange': '#f7921d', 'cadetblue': '#74729a', 'carnationpink': '#f282b4',
@@ -111,7 +115,7 @@ def print_stylesheet():
     print(STYLESHEET)
     if DATA.darkmode: print('body { background-color: black; color: white }')
     for role, color in DATA.colors.items():
-        color = DVIPS_COLORS.get(color, color)
+        color = DEFINED_COLORS.get(color, color)
         if DATA.darkmode: color = f'color-mix(in srgb, white, {color})'
         print(f'.{role} {{ color: {color} }}')
 
@@ -138,10 +142,14 @@ def get_text(node):
         text = str(node)
     else:
         text = ''
-        for part in node.contents:
+        parts = list(node.contents)
+        while parts:
+            part = parts.pop(0)
             if isinstance(part, (str, int, float)):
                 text += str(part)
-            else:
+            elif part.name == 'BraceGroup':
+                parts[0:0] = part.contents
+            elif len(part.args) > 0:
                 spanclass = MODIFIERS.get(part.name)
                 text += html('span', get_text(part.args[-1]), cls=spanclass)
     return text.strip()
@@ -205,6 +213,11 @@ def handle_command(node):
             DATA.row = int(node.args[1].string)
         return
 
+    if node.name == 'namnbyte':
+        role, newname = list(node.args)
+        DATA.roles[role.string] = newname.string
+        return
+
     if node.name == 'akt':
         DATA.act += 1
         print_hdr('h1', f'Akt {DATA.act}', id=f'akt-{DATA.act}', cls='akt')
@@ -213,7 +226,8 @@ def handle_command(node):
 
     if node.name == 'scen':
         DATA.scene += 1
-        print_hdr('h2', f'Scen {DATA.scene}:', node.args[0], id=f'scen-{DATA.scene}', cls='scen')
+        id = f'scen-{DATA.act}-{DATA.scene}'
+        print_hdr('h2', f'Scen {DATA.scene}:', node.args[0], id=id, cls='scen')
         return
 
     if node.name == 'musik':
@@ -227,23 +241,23 @@ def handle_command(node):
         return
 
     for role in DATA.roles:
-        if node.name.startswith(role):
-            suffix = node.name[len(role):]
-            if suffix in SUFFIX_INVISIBLE:
+        if role in node.name:
+            template = node.name.replace(role, '=')
+            if template in ROLE_INVISIBLE:
                 # TODO: Add vertical bars showing which characters are on stage
                 pass
             else:
                 person = DATA.roles.get(role, role)
-                textclass = SUFFIX_CLASSES.get(suffix, '')
+                textclass = ROLE_CLASSES.get(template, '')
                 text = (
-                    SUFFIX_TEXTS[suffix](person) if suffix in SUFFIX_TEXTS
+                    ROLE_TEXTS[template](person) if template in ROLE_TEXTS
                     else node if len(node.args) == 1 else ''
                 )
                 DATA.row += 1
                 print_row(role, person, textclass, text)
             return
 
-    print('?Unknown:', node, file=sys.stderr)
+    print('? Skipping unknown node:', str(node).replace('\n', ' '), file=sys.stderr)
 
 
 ###############################################################################
@@ -275,6 +289,16 @@ def convert_script(args):
     DATA.html = not args.text
     DATA.darkmode = args.dark
     script = TS.TexSoup(read_latex(args.file))
+
+    for node in script.find_all('definecolor'):
+        color, model, code = [a.string for a in node.args]
+        if model.lower() != 'html':
+            print('! Unknown color model:', model, file=sys.stderr)
+            continue
+        if color in DEFINED_COLORS:
+            print('! Color already defined:', color, file=sys.stderr)
+            continue
+        DEFINED_COLORS[color] = '#' + code
 
     for node in script.find_all(['nyroll', 'nyhjalproll']):
         role, name, color = make_role(node)
